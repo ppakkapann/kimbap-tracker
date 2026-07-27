@@ -18,6 +18,7 @@ import {
 } from "@/lib/types";
 import { formatQuantityWithHintText } from "@/lib/unit-conversion";
 import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
+import { PurchaseEditModal } from "@/components/stock/PurchaseEditModal";
 import {
   HistoryPeriodToggle,
   HistoryTableMonthRow,
@@ -305,6 +306,7 @@ export function PurchaseHistoryTable({
   const router = useRouter();
   const [, startTransition] = useTransition();
   const [pendingId, setPendingId] = useState<string | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [period, setPeriod] = useState<HistoryPeriod>("quarter");
@@ -382,6 +384,14 @@ export function PurchaseHistoryTable({
 
   return (
     <div className="history-panel-body">
+      {editingPurchase && ingredientMap.get(editingPurchase.ingredient_id) && (
+        <PurchaseEditModal
+          purchase={editingPurchase}
+          ingredient={ingredientMap.get(editingPurchase.ingredient_id)!}
+          onClose={() => setEditingPurchase(null)}
+        />
+      )}
+
       <div className="history-panel-controls-slot history-panel-controls-slot--purchase">
         <div className="purchase-history-summary">
           <div className="purchase-history-stat">
@@ -481,7 +491,22 @@ export function PurchaseHistoryTable({
               return (
                 <Fragment key={p.id}>
                   <div
-                    className={`ingredient-grid-row history-grid-row${isPending ? " history-grid-row--confirming" : ""}`}
+                    role="button"
+                    tabIndex={0}
+                    className={`ingredient-grid-row history-grid-row history-grid-row--interactive${isPending ? " history-grid-row--confirming" : ""}`}
+                    onClick={() => {
+                      if (isPending || isDeleting || !ing) return;
+                      setError("");
+                      setEditingPurchase(p);
+                    }}
+                    onKeyDown={(event) => {
+                      if (isPending || isDeleting || !ing) return;
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        setError("");
+                        setEditingPurchase(p);
+                      }
+                    }}
                   >
                     <div className="ingredient-grid-cell history-grid-cell history-grid-cell--date">
                       <span className="cell-numeric cell-muted text-sm tabular-nums">
@@ -541,7 +566,8 @@ export function PurchaseHistoryTable({
                           type="button"
                           aria-label={`ลบการซื้อ ${ing?.name ?? ""}`}
                           disabled={isDeleting}
-                          onClick={() => {
+                          onClick={(event) => {
+                            event.stopPropagation();
                             setError("");
                             setPendingId(p.id);
                           }}

@@ -569,6 +569,68 @@ export function demoDeletePurchase(purchaseId: string) {
   return { error: null };
 }
 
+export function demoUpdatePurchase(
+  purchaseId: string,
+  data: {
+    quantity: number;
+    total_price: number;
+    purchased_at: string;
+    note?: string;
+  }
+) {
+  const s = store();
+  const purchase = s.purchases.find((p) => p.id === purchaseId);
+  if (!purchase) return { error: "ไม่พบรายการซื้อ" };
+
+  const ing = s.ingredients.find((i) => i.id === purchase.ingredient_id);
+  if (!ing) return { error: "ไม่พบวัตถุดิบ" };
+
+  if (!Number.isFinite(data.quantity) || data.quantity <= 0) {
+    return { error: "จำนวนที่ซื้อต้องมากกว่า 0" };
+  }
+
+  const stockQuantity = data.quantity;
+  const newStock = ing.current_stock - purchase.quantity + stockQuantity;
+
+  if (newStock < 0) {
+    return {
+      error: `สต็อกไม่พอสำหรับการแก้ไข (คงเหลือ ${ing.current_stock})`,
+    };
+  }
+
+  const oldGross = purchase.gross_quantity ?? purchase.quantity;
+  const grossRatio =
+    purchase.quantity > 0 ? oldGross / purchase.quantity : 1;
+  const newGross = stockQuantity * grossRatio;
+  const unitCost = stockQuantity > 0 ? data.total_price / stockQuantity : 0;
+  const grossUnitCost = newGross > 0 ? data.total_price / newGross : unitCost;
+
+  purchase.quantity = stockQuantity;
+  purchase.gross_quantity = newGross;
+  purchase.total_price = data.total_price;
+  purchase.unit_cost = unitCost;
+  purchase.gross_unit_cost = grossUnitCost;
+  purchase.purchased_at = data.purchased_at;
+  purchase.note = data.note?.trim() || null;
+
+  ing.current_stock = newStock;
+  ing.avg_unit_cost = recomputeAvgUnitCostFromPurchases(
+    purchase.ingredient_id,
+    s.purchases
+  );
+
+  const movement = s.stockMovements.find(
+    (m) => m.type === "purchase" && m.reference_id === purchaseId
+  );
+  if (movement) {
+    movement.quantity = stockQuantity;
+    movement.unit_cost = unitCost;
+    movement.note = data.note?.trim() || "ซื้อเข้า";
+  }
+
+  return { error: null };
+}
+
 export function demoAdjustStock(data: {
   ingredient_id: string;
   new_stock: number;

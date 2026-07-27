@@ -36,6 +36,7 @@ import {
   demoSaveRecipeItems,
   demoUpdateIngredient,
   demoUpdateProduct,
+  demoUpdatePurchase,
   demoUpdateSale,
   resetDemoStore,
 } from "@/lib/demo-store";
@@ -621,6 +622,116 @@ export async function deletePurchase(purchaseId: string) {
     revalidatePath("/");
     return { error: null };
   }, () => demoDeletePurchase(purchaseId));
+}
+
+export async function updatePurchase(
+  purchaseId: string,
+  data: {
+    quantity: number;
+    total_price: number;
+    purchased_at: string;
+    note?: string;
+  }
+) {
+  return demoGuard(async () => {
+    if (!Number.isFinite(data.quantity) || data.quantity <= 0) {
+      return { error: "จำนวนที่ซื้อต้องมากกว่า 0" };
+    }
+    if (!Number.isFinite(data.total_price) || data.total_price < 0) {
+      return { error: "ราคารวมต้องไม่ติดลบ" };
+    }
+
+    const { supabase } = await requireAuth();
+
+    const { data: purchase, error: fetchError } = await supabase
+      .from("purchases")
+      .select("*")
+      .eq("id", purchaseId)
+      .single();
+
+    if (fetchError || !purchase) return { error: "ไม่พบรายการซื้อ" };
+
+    const { data: ingredient } = await supabase
+      .from("ingredients")
+      .select("current_stock")
+      .eq("id", purchase.ingredient_id)
+      .single();
+
+    if (!ingredient) return { error: "ไม่พบวัตถุดิบ" };
+
+    const stockQuantity = data.quantity;
+    const newStock =
+      (ingredient.current_stock ?? 0) - purchase.quantity + stockQuantity;
+
+    if (newStock < 0) {
+      const reduceBy = purchase.quantity - stockQuantity;
+      return {
+        error:
+          reduceBy > 0
+            ? `สต็อกไม่พอ — ใช้ไปแล้วบางส่วน (คงเหลือ ${ingredient.current_stock}, ต้องการลด ${reduceBy})`
+            : "สต็อกไม่พอสำหรับการแก้ไข",
+      };
+    }
+
+    const oldGross = purchase.gross_quantity ?? purchase.quantity;
+    const grossRatio =
+      purchase.quantity > 0 ? oldGross / purchase.quantity : 1;
+    const newGross = stockQuantity * grossRatio;
+    const unitCost = stockQuantity > 0 ? data.total_price / stockQuantity : 0;
+    const grossUnitCost = newGross > 0 ? data.total_price / newGross : unitCost;
+
+    const { error: purchaseError } = await supabase
+      .from("purchases")
+      .update({
+        quantity: stockQuantity,
+        gross_quantity: newGross,
+        total_price: data.total_price,
+        unit_cost: unitCost,
+        gross_unit_cost: grossUnitCost,
+        purchased_at: data.purchased_at,
+        note: data.note?.trim() || null,
+      })
+      .eq("id", purchaseId);
+
+    if (purchaseError) return { error: purchaseError.message };
+
+    const { data: allPurchases } = await supabase
+      .from("purchases")
+      .select("*")
+      .eq("ingredient_id", purchase.ingredient_id);
+
+    const newAvg = recomputeAvgUnitCostFromPurchases(
+      purchase.ingredient_id,
+      allPurchases ?? []
+    );
+
+    const { error: stockError } = await supabase
+      .from("ingredients")
+      .update({
+        current_stock: newStock,
+        avg_unit_cost: newAvg,
+      })
+      .eq("id", purchase.ingredient_id);
+
+    if (stockError) return { error: stockError.message };
+
+    await supabase
+      .from("stock_movements")
+      .update({
+        quantity: stockQuantity,
+        unit_cost: unitCost,
+        note: data.note?.trim() || "ซื้อเข้า",
+      })
+      .eq("reference_id", purchaseId)
+      .eq("type", "purchase");
+
+    revalidatePath("/ingredients");
+    revalidatePath(`/ingredients/${purchase.ingredient_id}`);
+    revalidatePath("/stock");
+    revalidatePath("/accounting");
+    revalidatePath("/");
+    return { error: null };
+  }, () => demoUpdatePurchase(purchaseId, data));
 }
 
 export async function adjustStock(data: {

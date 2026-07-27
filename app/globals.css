@@ -5449,6 +5449,15 @@ a.app-stat-link:focus-visible {
   cursor: default;
 }
 
+.history-grid-row--interactive {
+  cursor: pointer;
+}
+
+.history-grid-row--interactive:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
 .history-grid-row:hover {
   background: var(--bg-hover);
 }

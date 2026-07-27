@@ -111,7 +111,7 @@ export function StockPageClient({
           <div className="app-card history-panel-card">
             <h2 className="app-section-title mb-1">ประวัติการซื้อ</h2>
             <p className="history-panel-subtitle">
-              เฉพาะ + เติมสต็อก — จัดตามเดือน
+              เฉพาะ + เติมสต็อก — จิ้มรายการเพื่อแก้ไข
             </p>
             <PurchaseHistoryTable
               purchases={actualPurchases}
