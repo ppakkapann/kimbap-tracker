@@ -1,36 +1,55 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# คิมบับต้นทุน (Kimbap Tracker)
 
-## Getting Started
+เว็บแอพคำนวณต้นทุน จัดการสต็อก และติดตามกำไรร้านคิมบับ
 
-First, run the development server:
+## ฟีเจอร์
+
+- **วัตถุดิบ** — เพิ่ม/จัดการวัตถุดิบ บันทึกการซื้อ คำนวณต้นทุนต่อหน่วย
+- **เมนู/สูตร** — กำหนด BOM (วัตถุดิบต่อม้วน) คำนวณต้นทุนและกำไรอัตโนมัติ
+- **สต็อก** — ซื้อเข้า ปรับยอด ดูประวัติ movement
+- **ยอดขาย** — บันทึกขายเร็ว หักสต็อกอัตโนมัติตามสูตร
+- **รายงาน** — กำไรรายวัน/สัปดาห์/เดือน เมนูขายดี
+
+## เริ่มต้นใช้งาน
+
+### 1. ตั้งค่า Supabase
+
+1. สร้าง project ที่ [supabase.com](https://supabase.com)
+2. ไปที่ SQL Editor แล้วรันไฟล์ `supabase/migrations/001_initial_schema.sql`
+3. คัดลอก URL และ anon key จาก Settings → API
+
+### 2. ตั้งค่า Environment
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.local.example .env.local
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+แก้ไข `.env.local`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```
+NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 3. รันแอป
 
-## Learn More
+```bash
+npm install
+npm run dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+เปิด [http://localhost:3000](http://localhost:3000) แล้วสมัครสมาชิก/เข้าสู่ระบบ
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## วิธีใช้งาน
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **เพิ่มวัตถุดิบ** — ข้าว, แครอท, สาหร่าย ฯลฯ
+2. **บันทึกการซื้อ** — ข้าว 1 กก. 45 บาท → ระบบคำนวณต้นทุน/กรัม
+3. **สร้างเมนู + สูตร** — คิมบับหมู ใช้ข้าว 80g, สาหร่าย 1 แผ่น ฯลฯ
+4. **บันทึกยอดขาย** — ขาย 25 ม้วน → หักสต็อกอัตโนมัติ
+5. **ดูแดชบอร์ด/รายงาน** — กำไรวันนี้ เท่าไหร่
 
-## Deploy on Vercel
+## Tech Stack
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Next.js 16 + React 19 + TypeScript
+- Tailwind CSS v4
+- Supabase (PostgreSQL + Auth + RLS)

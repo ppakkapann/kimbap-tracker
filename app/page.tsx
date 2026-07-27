@@ -1,65 +1,262 @@
-import Image from "next/image";
+import Link from "next/link";
+import { Suspense } from "react";
+import { format } from "date-fns";
+import {
+  Badge,
+  Card,
+  SectionTitle,
+  StatCard,
+} from "@/components/ui";
+import { DashboardDateRangePicker } from "@/components/dashboard/DashboardDateRangePicker";
+import {
+  calculateSaleRevenue,
+  formatCurrency,
+  formatNumber,
+  isLowStock,
+} from "@/lib/calculations";
+import {
+  dashboardRangeLabel,
+  resolveDashboardRange,
+} from "@/lib/dashboard-range";
+import { getSaleChannelLabel } from "@/lib/sales-channels";
+import {
+  fetchIngredients,
+  fetchSales,
+  getPeriodSummary,
+} from "@/lib/queries";
+import {
+  Download,
+  Plus,
+} from "lucide-react";
 
-export default function Home() {
+export default async function DashboardPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ range?: string; from?: string; to?: string }>;
+}) {
+  const params = await searchParams;
+  const today = format(new Date(), "yyyy-MM-dd");
+  const dateRange = resolveDashboardRange(
+    params.range,
+    params.from,
+    params.to,
+    today
+  );
+  const rangeLabel = dashboardRangeLabel(dateRange);
+  const isTodayOnly =
+    dateRange.preset === "today" &&
+    dateRange.startDate === today &&
+    dateRange.endDate === today;
+
+  const [summary, ingredients, rangeSales] = await Promise.all([
+    getPeriodSummary(dateRange.startDate, dateRange.endDate),
+    fetchIngredients(),
+    fetchSales({
+      startDate: dateRange.startDate,
+      endDate: dateRange.endDate,
+    }),
+  ]);
+
+  const lowStockItems = ingredients.filter(isLowStock);
+  const outOfStockItems = lowStockItems.filter(
+    (ingredient) => ingredient.current_stock <= 0
+  );
+  const needsRestockItems = lowStockItems.filter(
+    (ingredient) => ingredient.current_stock > 0
+  );
+
+  const salesLabel = isTodayOnly ? "ขายวันนี้" : "ยอดขาย";
+  const revenueLabel = isTodayOnly ? "รายได้วันนี้" : "รายได้";
+  const recentSalesTitle = isTodayOnly ? "กิจกรรมขายวันนี้" : "กิจกรรมขายล่าสุด";
+  const recentSalesDescription = isTodayOnly
+    ? `${rangeSales.length} รายการที่บันทึกในวันนี้`
+    : `${rangeSales.length} รายการในช่วง ${rangeLabel}`;
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div>
+      <div className="mb-5 flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+        <div>
+          <h1 className="app-title">ภาพรวมร้าน</h1>
+          <p className="app-subtitle mt-1">
+            {isTodayOnly
+              ? "วันนี้ขายเป็นอย่างไร และมีเรื่องไหนต้องจัดการตอนนี้"
+              : `สรุปช่วง ${rangeLabel}`}
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          <Suspense fallback={null}>
+            <DashboardDateRangePicker
+              preset={dateRange.preset}
+              startDate={dateRange.startDate}
+              endDate={dateRange.endDate}
+              today={today}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </Suspense>
+          <div className="flex gap-2">
+            <Link href="/reports" className="app-btn app-btn-secondary">
+              <Download size={13} /> ดูรายงาน
+            </Link>
+            <Link href="/sales" className="app-btn app-btn-primary">
+              <Plus size={13} /> บันทึกยอดขาย
+            </Link>
+          </div>
         </div>
-      </main>
+      </div>
+
+      <div className="app-grid-stats mb-6">
+        <StatCard
+          label={salesLabel}
+          value={`${formatNumber(summary.totalRolls, 0)} ม้วน`}
+          variant="accent"
+        />
+        <StatCard
+          label={revenueLabel}
+          value={formatCurrency(summary.totalRevenue)}
+        />
+        <StatCard
+          label="กำไรขั้นต้น"
+          value={formatCurrency(summary.totalProfit)}
+          variant={summary.totalProfit >= 0 ? "success" : "danger"}
+        />
+        <StatCard
+          label="ต้นทุนที่ขาย"
+          value={formatCurrency(summary.totalCost)}
+        />
+      </div>
+
+      <div className="dashboard-support-grid">
+        <Card>
+          <SectionTitle
+            title="สถานะสต็อก"
+            description={
+              lowStockItems.length === 0
+                ? `${ingredients.length} รายการพร้อมขาย`
+                : `หมด ${outOfStockItems.length} · ใกล้หมด ${needsRestockItems.length}`
+            }
+            action={
+              <Link href="/stock" className="app-link">
+                จัดการสต็อก →
+              </Link>
+            }
+          />
+          {lowStockItems.length === 0 ? (
+            <div className="dashboard-stock-ok">
+              <strong>สต็อกอยู่ในระดับพร้อมขาย</strong>
+              <span>ยังไม่มีวัตถุดิบที่ต่ำกว่าจุดแจ้งเตือน</span>
+            </div>
+          ) : (
+            <div className="dashboard-stock-list">
+              {lowStockItems.slice(0, 6).map((ingredient) => (
+                <div key={ingredient.id} className="dashboard-stock-item">
+                  <div>
+                    <strong>{ingredient.name}</strong>
+                    <span>
+                      {ingredient.current_stock <= 0
+                        ? "ของหมด — ควรเติมทันที"
+                        : "ใกล้ถึงจุดแจ้งเตือน"}
+                    </span>
+                  </div>
+                  <Badge variant="danger">
+                    เหลือ {ingredient.current_stock}
+                  </Badge>
+                </div>
+              ))}
+            </div>
+          )}
+        </Card>
+
+        <Card>
+          <SectionTitle
+            title={isTodayOnly ? "ทางลัดวันนี้" : "ทางลัด"}
+            description="ไปยังงานที่ต้องทำโดยไม่ต้องค้นหาเมนู"
+          />
+          <div className="dashboard-action-list">
+            <Link href="/sales" className="dashboard-action-item">
+              <strong>บันทึกยอดขาย</strong>
+              <span>เพิ่มรายการขายของวันนี้ →</span>
+            </Link>
+            <Link href="/stock" className="dashboard-action-item">
+              <strong>เติมหรือปรับสต็อก</strong>
+              <span>
+                {lowStockItems.length > 0
+                  ? `มี ${lowStockItems.length} รายการควรตรวจสอบ →`
+                  : "ดูสต็อกทั้งหมด →"}
+              </span>
+            </Link>
+            <Link href="/reports" className="dashboard-action-item">
+              <strong>ดูแนวโน้มและสาเหตุ</strong>
+              <span>เปรียบเทียบผลกับช่วงก่อนหน้า →</span>
+            </Link>
+          </div>
+        </Card>
+      </div>
+
+      <Card className="app-card-flush dashboard-recent-sales">
+        <div className="app-card-header">
+          <div>
+            <h2 className="app-section-title">{recentSalesTitle}</h2>
+            <p className="app-section-description mt-1">
+              {recentSalesDescription}
+            </p>
+          </div>
+          <Link href="/sales" className="app-btn app-btn-secondary !px-2.5 !py-1.5">
+            ดูทั้งหมด
+          </Link>
+        </div>
+        <div className="app-table-wrap">
+          <table className="app-table min-w-[680px]">
+            <thead>
+              <tr>
+                <th>เมนู</th>
+                <th>วันที่</th>
+                <th>จำนวน</th>
+                <th>ช่องทางขาย</th>
+                <th>รายได้</th>
+                <th>สถานะ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rangeSales.slice(0, 5).map((sale) => (
+                <tr key={sale.id}>
+                  <td className="font-medium">
+                    {sale.product?.name ?? "ไม่พบเมนู"}
+                  </td>
+                  <td className="cell-muted">
+                    {new Date(sale.sale_date).toLocaleDateString("th-TH", {
+                      day: "numeric",
+                      month: "short",
+                    })}
+                  </td>
+                  <td className="cell-numeric">{formatNumber(sale.quantity, 0)} ม้วน</td>
+                  <td className="cell-muted">
+                    {getSaleChannelLabel(sale.channel) || "ไม่ระบุ"}
+                  </td>
+                  <td className="cell-numeric font-medium">
+                    {formatCurrency(
+                      calculateSaleRevenue(
+                        sale,
+                        sale.product?.selling_price ?? 0
+                      )
+                    )}
+                  </td>
+                  <td>
+                    <Badge variant="success">บันทึกแล้ว</Badge>
+                  </td>
+                </tr>
+              ))}
+              {rangeSales.length === 0 && (
+                <tr>
+                  <td colSpan={6} className="cell-muted text-center">
+                    {isTodayOnly
+                      ? "ยังไม่มีรายการขายวันนี้"
+                      : "ยังไม่มีรายการขายในช่วงนี้"}
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
     </div>
   );
 }

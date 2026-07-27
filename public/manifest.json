@@ -1,0 +1,25 @@
+{
+  "name": "คิมบับต้นทุน",
+  "short_name": "คิมบับ",
+  "description": "คำนวณต้นทุน สต็อก และกำไรร้านคิมบับ",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "any",
+  "lang": "th",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
