@@ -1,6 +1,5 @@
+import { isSupabaseConfigured } from "@/lib/supabase/env";
+
 export function isDemoMode(): boolean {
-  return (
-    !process.env.NEXT_PUBLIC_SUPABASE_URL ||
-    !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-  );
+  return !isSupabaseConfigured();
 }

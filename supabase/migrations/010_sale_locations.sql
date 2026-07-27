@@ -1,5 +1,5 @@
--- Reserved schema: app uses free-text sales.channel instead (see 008/009 migrations).
--- Kept for possible future normalized locations; no app code references yet.
+-- Optional normalized locations (future use). App uses free-text sales.channel (008/009).
+-- Do not drop sales.channel — app reads/writes channel for sale platform/location labels.
 create table if not exists sale_locations (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -12,8 +12,6 @@ create table if not exists sale_locations (
 
 alter table sales
   add column if not exists location_id uuid references sale_locations(id) on delete set null;
-
-alter table sales drop column if exists channel;
 
 create index if not exists idx_sale_locations_user on sale_locations(user_id);
 create index if not exists idx_sales_location on sales(location_id);

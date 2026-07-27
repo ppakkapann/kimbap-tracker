@@ -40,6 +40,7 @@ import {
   resetDemoStore,
 } from "@/lib/demo-store";
 import { createClient } from "@/lib/supabase/server";
+import { formatSupabaseAuthError } from "@/lib/supabase/env";
 import type { IngredientCategory, IngredientUnit, StockMovementReason } from "@/lib/types";
 
 const DEMO_ERROR = "โหมด Demo — ตั้งค่า Supabase เพื่อบันทึกข้อมูล";
@@ -130,20 +131,28 @@ export async function deleteOperatingExpense(id: string) {
 
 export async function signIn(email: string, password: string) {
   if (isDemoMode()) return { error: null };
-  const supabase = await createClient();
-  if (!supabase) return { error: DEMO_ERROR };
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error) return { error: error.message };
-  return { error: null };
+  try {
+    const supabase = await createClient();
+    if (!supabase) return { error: DEMO_ERROR };
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch (e) {
+    return { error: formatSupabaseAuthError(e) };
+  }
 }
 
 export async function signUp(email: string, password: string) {
   if (isDemoMode()) return { error: null };
-  const supabase = await createClient();
-  if (!supabase) return { error: DEMO_ERROR };
-  const { error } = await supabase.auth.signUp({ email, password });
-  if (error) return { error: error.message };
-  return { error: null };
+  try {
+    const supabase = await createClient();
+    if (!supabase) return { error: DEMO_ERROR };
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) return { error: error.message };
+    return { error: null };
+  } catch (e) {
+    return { error: formatSupabaseAuthError(e) };
+  }
 }
 
 export async function signOut() {

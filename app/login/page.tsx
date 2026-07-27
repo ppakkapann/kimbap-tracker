@@ -2,8 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { signIn, signUp } from "@/lib/actions";
 import { KimbapMark } from "@/components/brand/KimbapMark";
+import { createClient } from "@/lib/supabase/client";
+import { formatSupabaseAuthError } from "@/lib/supabase/env";
+
+function isSupabaseConfiguredClient(): boolean {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key =
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim() ??
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim();
+  return Boolean(url && key);
+}
 
 export default function LoginPage() {
   const router = useRouter();
@@ -18,18 +27,30 @@ export default function LoginPage() {
     setLoading(true);
     setError("");
 
-    const result = isSignUp
-      ? await signUp(email, password)
-      : await signIn(email, password);
-
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
+    if (!isSupabaseConfiguredClient()) {
+      router.push("/");
+      router.refresh();
       return;
     }
 
-    router.push("/");
-    router.refresh();
+    try {
+      const supabase = createClient();
+      const { error: authError } = isSignUp
+        ? await supabase.auth.signUp({ email, password })
+        : await supabase.auth.signInWithPassword({ email, password });
+
+      if (authError) {
+        setError(authError.message);
+        setLoading(false);
+        return;
+      }
+
+      router.push("/");
+      router.refresh();
+    } catch (err) {
+      setError(formatSupabaseAuthError(err));
+      setLoading(false);
+    }
   }
 
   return (

@@ -15,23 +15,30 @@
 ### 1. ตั้งค่า Supabase
 
 1. สร้าง project ที่ [supabase.com](https://supabase.com)
-2. ไปที่ SQL Editor แล้วรันไฟล์ `supabase/migrations/001_initial_schema.sql`
+2. ไปที่ **SQL Editor** → เปิด `supabase/all-migrations.sql` แล้ว copy ทั้งไฟล์ → **Run**
 3. คัดลอก URL และ anon key จาก Settings → API
 
 ### 2. ตั้งค่า Environment
 
+**Local (ดู UI / Demo)** — ไม่ต้องใส่ Supabase ใน `.env.local` (ว่างไว้ = ข้อมูลปลอมใน memory ไม่เชื่อมกับเว็บจริง)
+
+**Production (Vercel)** — ใส่ `NEXT_PUBLIC_SUPABASE_URL` และ `NEXT_PUBLIC_SUPABASE_ANON_KEY` ใน Vercel → Settings → Environment Variables เท่านั้น
+
 ```bash
-cp .env.local.example .env.local
+cp .env.local.example .env.local   # local ว่าง = demo mode
 ```
 
-แก้ไข `.env.local`:
+### 3. ล้างข้อมูลบนเว็บ (เริ่มใหม่)
 
-```
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-```
+**ถ้า header ขึ้น "DEMO"** = Vercel ยังไม่มี Supabase env → แสดงข้อมูลปลอมจากโค้ด ไม่ใช่ DB  
+→ ใส่ `NEXT_PUBLIC_SUPABASE_URL` + `NEXT_PUBLIC_SUPABASE_ANON_KEY` ใน **Vercel → Settings → Environment Variables (Production)** แล้ว **Redeploy**
 
-### 3. รันแอป
+**หลังต่อ Supabase แล้ว** ล้างข้อมูลจริง:
+1. Supabase → **SQL Editor** → รัน `supabase/reset-data.sql`
+2. **Authentication → Users** → ลบ user เก่า
+3. สมัครใหม่บนเว็บ
+
+### 4. รันแอป
 
 ```bash
 npm install

@@ -7,21 +7,23 @@ import { SalesPageDateSync } from "@/components/sales/SalesPageDateSync";
 import { Card, PageHeader, SectionTitle, StatCard } from "@/components/ui";
 import { calculateSaleProfit, formatCurrency, formatNumber } from "@/lib/calculations";
 import { collectLocationPresetsFromSales } from "@/lib/sale-location-presets";
+import { recipeItemsByProduct } from "@/lib/recipe-index";
 import {
   isValidSalesPageDate,
   resolveSalesPageDate,
   SALES_PAGE_DATE_COOKIE,
 } from "@/lib/sales-page-date";
 import {
+  fetchAllRecipeItems,
   fetchIngredients,
   fetchKnownSaleLocations,
   fetchProductsWithCost,
   fetchPurchases,
-  fetchRecipeItems,
+  fetchSalePresetRows,
   fetchSales,
   fetchStockMovementsForSales,
-  getDailySummary,
   getSalesOverview,
+  summarizeSalesPeriod,
 } from "@/lib/queries";
 import { format } from "date-fns";
 import { cookies } from "next/headers";
@@ -44,37 +46,44 @@ export default async function SalesPage({
   const selectedDate = resolveSalesPageDate(dateParam, rememberedDate, today);
   const isToday = selectedDate === today;
 
-  const [products, sales, allSales, summary, purchases, ingredients, overview, knownLocations] =
-    await Promise.all([
-      fetchProductsWithCost(),
-      fetchSales({ date: selectedDate }),
-      fetchSales(),
-      getDailySummary(selectedDate),
-      fetchPurchases(),
-      fetchIngredients(),
-      getSalesOverview(today, selectedDate),
-      fetchKnownSaleLocations(),
-    ]);
+  const [
+    products,
+    sales,
+    presetRows,
+    purchases,
+    ingredients,
+    allRecipeItems,
+    overview,
+    knownLocations,
+  ] = await Promise.all([
+    fetchProductsWithCost(),
+    fetchSales({ date: selectedDate }),
+    fetchSalePresetRows(),
+    fetchPurchases(),
+    fetchIngredients(),
+    fetchAllRecipeItems(),
+    getSalesOverview(today, selectedDate),
+    fetchKnownSaleLocations(),
+  ]);
 
   const saleUsageMovements = await fetchStockMovementsForSales(sales);
+  const summary = summarizeSalesPeriod(sales, saleUsageMovements);
+  const savedLocationPresets = collectLocationPresetsFromSales(presetRows);
+  const recipesByProduct = recipeItemsByProduct(allRecipeItems);
 
-  const savedLocationPresets = collectLocationPresetsFromSales(allSales);
-
-  const salesWithProfit = await Promise.all(
-    sales.map(async (sale) => {
-      if (!sale.product) return { sale, profit: 0 };
-      const recipeItems = await fetchRecipeItems(sale.product_id);
-      const { profit } = calculateSaleProfit(
-        sale,
-        sale.product,
-        recipeItems,
-        purchases,
-        ingredients,
-        saleUsageMovements
-      );
-      return { sale, profit };
-    })
-  );
+  const salesWithProfit = sales.map((sale) => {
+    if (!sale.product) return { sale, profit: 0 };
+    const recipeItems = recipesByProduct.get(sale.product_id) ?? [];
+    const { profit } = calculateSaleProfit(
+      sale,
+      sale.product,
+      recipeItems,
+      purchases,
+      ingredients,
+      saleUsageMovements
+    );
+    return { sale, profit };
+  });
 
   const dateLabel = new Date(selectedDate).toLocaleDateString("th-TH", {
     weekday: "long",

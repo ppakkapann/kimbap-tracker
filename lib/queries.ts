@@ -1,7 +1,9 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { buildPeriodSummary } from "@/lib/accounting";
 import { isDemoMode } from "@/lib/config";
 import { filterActualPurchases } from "@/lib/purchases";
+import { recipeItemsByProduct } from "@/lib/recipe-index";
 import {
   buildAccountingChartsData,
 } from "@/lib/accounting-charts";
@@ -49,7 +51,11 @@ import type {
 } from "@/lib/types";
 import { format, subDays } from "date-fns";
 
-export async function fetchIngredients(): Promise<Ingredient[]> {
+type SalePresetRow = Pick<Sale, "channel" | "created_at" | "gp_percent">;
+
+export const fetchIngredients = cache(async function fetchIngredients(): Promise<
+  Ingredient[]
+> {
   if (isDemoMode()) return getDemoIngredients();
   const supabase = await createClient();
   const { data } = await supabase!
@@ -58,9 +64,11 @@ export async function fetchIngredients(): Promise<Ingredient[]> {
     .order("sort_order")
     .order("name");
   return data ?? [];
-}
+});
 
-export async function fetchIngredient(id: string): Promise<Ingredient | null> {
+export const fetchIngredient = cache(async function fetchIngredient(
+  id: string
+): Promise<Ingredient | null> {
   if (isDemoMode()) return getDemoIngredient(id);
   const supabase = await createClient();
   const { data } = await supabase!
@@ -69,9 +77,9 @@ export async function fetchIngredient(id: string): Promise<Ingredient | null> {
     .eq("id", id)
     .single();
   return data;
-}
+});
 
-export async function fetchPurchases(
+export const fetchPurchases = cache(async function fetchPurchases(
   ingredientId?: string
 ): Promise<Purchase[]> {
   if (isDemoMode()) return getDemoPurchases(ingredientId);
@@ -87,16 +95,20 @@ export async function fetchPurchases(
 
   const { data } = await query;
   return data ?? [];
-}
+});
 
-export async function fetchProducts(): Promise<Product[]> {
+export const fetchProducts = cache(async function fetchProducts(): Promise<
+  Product[]
+> {
   if (isDemoMode()) return getDemoProducts();
   const supabase = await createClient();
   const { data } = await supabase!.from("products").select("*").order("name");
   return data ?? [];
-}
+});
 
-export async function fetchProduct(id: string): Promise<Product | null> {
+export const fetchProduct = cache(async function fetchProduct(
+  id: string
+): Promise<Product | null> {
   if (isDemoMode()) return getDemoProduct(id);
   const supabase = await createClient();
   const { data } = await supabase!
@@ -105,9 +117,9 @@ export async function fetchProduct(id: string): Promise<Product | null> {
     .eq("id", id)
     .single();
   return data;
-}
+});
 
-export async function fetchRecipeItems(
+export const fetchRecipeItems = cache(async function fetchRecipeItems(
   productId: string
 ): Promise<RecipeItem[]> {
   if (isDemoMode()) return getDemoRecipeItems(productId);
@@ -117,27 +129,35 @@ export async function fetchRecipeItems(
     .select("*, ingredient:ingredients(*)")
     .eq("product_id", productId);
   return data ?? [];
-}
+});
 
-export async function fetchAllRecipeItems(): Promise<RecipeItem[]> {
+export const fetchAllRecipeItems = cache(async function fetchAllRecipeItems(): Promise<
+  RecipeItem[]
+> {
   if (isDemoMode()) return getDemoAllRecipeItems();
   const supabase = await createClient();
   const { data } = await supabase!
     .from("recipe_items")
     .select("*, ingredient:ingredients(*)");
   return data ?? [];
-}
+});
 
-export async function fetchProductsWithCost(): Promise<ProductWithCost[]> {
+export const fetchProductsWithCost = cache(async function fetchProductsWithCost(): Promise<
+  ProductWithCost[]
+> {
   if (isDemoMode()) return getDemoProductsWithCost();
-  const products = await fetchProducts();
-  const purchases = await fetchPurchases();
-  const ingredients = await fetchIngredients();
 
+  const [products, purchases, ingredients, allRecipeItems] = await Promise.all([
+    fetchProducts(),
+    fetchPurchases(),
+    fetchIngredients(),
+    fetchAllRecipeItems(),
+  ]);
+  const recipesByProduct = recipeItemsByProduct(allRecipeItems);
   const result: ProductWithCost[] = [];
 
   for (const product of products) {
-    const recipeItems = await fetchRecipeItems(product.id);
+    const recipeItems = recipesByProduct.get(product.id) ?? [];
     const costPerRoll = calculateCostPerRoll(
       recipeItems,
       purchases,
@@ -158,9 +178,9 @@ export async function fetchProductsWithCost(): Promise<ProductWithCost[]> {
   }
 
   return result;
-}
+});
 
-export async function fetchSales(options?: {
+export const fetchSales = cache(async function fetchSales(options?: {
   date?: string;
   startDate?: string;
   endDate?: string;
@@ -187,11 +207,32 @@ export async function fetchSales(options?: {
 
   const { data } = await query;
   return data ?? [];
-}
+});
+
+export const fetchSalePresetRows = cache(async function fetchSalePresetRows(): Promise<
+  SalePresetRow[]
+> {
+  if (isDemoMode()) {
+    return getDemoSales().map((sale) => ({
+      channel: sale.channel,
+      created_at: sale.created_at,
+      gp_percent: sale.gp_percent,
+    }));
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase!
+    .from("sales")
+    .select("channel, created_at, gp_percent")
+    .order("created_at", { ascending: false })
+    .limit(300);
+
+  return data ?? [];
+});
 
 export async function fetchKnownSaleLocations(): Promise<string[]> {
-  const sales = await fetchSales();
-  return collectKnownSaleLocations(sales);
+  const rows = await fetchSalePresetRows();
+  return collectKnownSaleLocations(rows as Sale[]);
 }
 
 export async function fetchOperatingExpenses(
@@ -255,13 +296,34 @@ export async function getSalesOverview(today: string, selectedDate: string) {
   return buildSalesOverviewData(sales, today, selectedDate);
 }
 
-export async function fetchAllStockMovements(): Promise<StockMovement[]> {
+export const fetchAllStockMovements = cache(async function fetchAllStockMovements(): Promise<
+  StockMovement[]
+> {
   if (isDemoMode()) return getDemoAllStockMovements();
   const supabase = await createClient();
   const { data } = await supabase!
     .from("stock_movements")
     .select("*, ingredient:ingredients(*)")
     .order("created_at", { ascending: false });
+  return data ?? [];
+});
+
+export async function fetchStockMovementsSince(
+  sinceDate: string
+): Promise<StockMovement[]> {
+  if (isDemoMode()) {
+    return getDemoAllStockMovements().filter(
+      (movement) => movement.created_at.slice(0, 10) >= sinceDate
+    );
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase!
+    .from("stock_movements")
+    .select("*, ingredient:ingredients(*)")
+    .gte("created_at", `${sinceDate}T00:00:00`)
+    .order("created_at", { ascending: false });
+
   return data ?? [];
 }
 
@@ -301,6 +363,34 @@ export async function fetchStockMovementsForSales(
     .eq("type", "usage")
     .in("reference_id", ids);
   return data ?? [];
+}
+
+export function summarizeSalesPeriod(
+  sales: Sale[],
+  movements: StockMovement[]
+): DailySummary {
+  let totalRolls = 0;
+  let totalRevenue = 0;
+  let totalCost = 0;
+
+  for (const sale of sales) {
+    if (!sale.product) continue;
+    const { revenue, cost } = saleProfitFromMovements(
+      sale,
+      sale.product,
+      movements
+    );
+    totalRolls += sale.quantity;
+    totalRevenue += revenue;
+    totalCost += cost;
+  }
+
+  return {
+    totalRolls,
+    totalRevenue,
+    totalCost,
+    totalProfit: totalRevenue - totalCost,
+  };
 }
 
 export async function getPeriodSummary(
@@ -436,6 +526,7 @@ export async function fetchAccountingPage(month: string) {
     sales,
     operatingExpenses,
     allOperatingExpenses,
+    allRecipeItems,
   ] = await Promise.all([
     fetchIngredients(),
     fetchPurchases(),
@@ -443,15 +534,18 @@ export async function fetchAccountingPage(month: string) {
     fetchSales(),
     fetchOperatingExpenses(month),
     fetchOperatingExpenses(),
+    fetchAllRecipeItems(),
   ]);
 
   const purchases = filterActualPurchases(allPurchases, movements);
+  const recipesByProduct = recipeItemsByProduct(allRecipeItems);
 
-  const saleProfits = sales.map((sale) => {
+  const resolvedSaleProfits = sales.map((sale) => {
     const product = sale.product;
     if (!product) {
-      return Promise.resolve({ saleId: sale.id, profit: 0, revenue: 0 });
+      return { saleId: sale.id, profit: 0, revenue: 0 };
     }
+
     const usageMovements = movements.filter(
       (m) => m.reference_id === sale.id && m.type === "usage"
     );
@@ -461,22 +555,19 @@ export async function fetchAccountingPage(month: string) {
         product,
         movements
       );
-      return Promise.resolve({ saleId: sale.id, profit, revenue });
-    }
-    return (async () => {
-      const recipeItems = await fetchRecipeItems(sale.product_id);
-      const { profit, revenue } = calculateSaleProfit(
-        sale,
-        product,
-        recipeItems,
-        purchases,
-        ingredients
-      );
       return { saleId: sale.id, profit, revenue };
-    })();
-  });
+    }
 
-  const resolvedSaleProfits = await Promise.all(saleProfits);
+    const recipeItems = recipesByProduct.get(sale.product_id) ?? [];
+    const { profit, revenue } = calculateSaleProfit(
+      sale,
+      product,
+      recipeItems,
+      purchases,
+      ingredients
+    );
+    return { saleId: sale.id, profit, revenue };
+  });
 
   const summary = buildPeriodSummary(
     month,
