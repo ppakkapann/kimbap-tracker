@@ -1,6 +1,6 @@
 {
-  "name": "คิมบับต้นทุน",
-  "short_name": "คิมบับ",
+  "name": "Gumi Gimi Kimbap",
+  "short_name": "Gumi Gimi Kimbap",
   "description": "คำนวณต้นทุน สต็อก และกำไรร้านคิมบับ",
   "start_url": "/",
   "display": "standalone",

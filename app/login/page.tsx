@@ -60,7 +60,7 @@ export default function LoginPage() {
           <div className="mb-4 flex justify-center">
             <KimbapMark size={56} />
           </div>
-          <h1 className="app-title">คิมบับต้นทุน</h1>
+          <h1 className="app-title">Gumi Gimi Kimbap</h1>
           <p className="app-subtitle mt-2">
             คำนวณต้นทุน สต็อก และกำไรร้านคิมบับ
           </p>

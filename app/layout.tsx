@@ -14,12 +14,12 @@ const googleSans = Google_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "คิมบับต้นทุน",
+  title: "Gumi Gimi Kimbap",
   description: "คำนวณต้นทุน สต็อก และกำไรร้านคิมบับ",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
-    title: "คิมบับ",
+    title: "Gumi Gimi Kimbap",
     statusBarStyle: "black-translucent",
   },
 };
