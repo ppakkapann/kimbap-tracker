@@ -6027,6 +6027,15 @@ a.app-stat-link:focus-visible {
   background: var(--danger-muted);
 }
 
+.purchase-history-detail {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+  line-height: 1.35;
+  word-break: break-word;
+}
+
 @media (hover: none) {
   .purchase-history-delete {
     opacity: 0.55;

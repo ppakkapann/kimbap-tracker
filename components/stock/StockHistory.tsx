@@ -8,15 +8,13 @@ import { Activity, ShoppingBag, Trash2 } from "lucide-react";
 import { deletePurchase } from "@/lib/actions";
 import { formatCurrency, formatNumber } from "@/lib/calculations";
 import { filterByPeriod } from "@/lib/history-groups";
-import { purchaseHasYield } from "@/lib/purchase-yield";
+import { purchaseDetailParts } from "@/lib/purchases";
 import type { HistoryPeriod } from "@/lib/history-groups";
 import type { Ingredient, Purchase, StockMovement } from "@/lib/types";
 import {
-  getIngredientBaseUnit,
   getIngredientUnitLabel,
   type StockMovementType,
 } from "@/lib/types";
-import { formatQuantityWithHintText } from "@/lib/unit-conversion";
 import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
 import { PurchaseEditModal } from "@/components/stock/PurchaseEditModal";
 import {
@@ -229,7 +227,13 @@ export function StockMovementHistory({
                   : null;
               const detailParts = [
                 format(new Date(m.created_at), "HH:mm"),
-                m.note,
+                ...(purchase
+                  ? purchaseDetailParts(purchase, m.ingredient, {
+                      formatDate: formatHistoryDate,
+                    })
+                  : m.note
+                    ? [m.note]
+                    : []),
                 purchase ? formatCurrency(purchase.total_price) : null,
               ].filter(Boolean);
 
@@ -478,15 +482,9 @@ export function PurchaseHistoryTable({
               const unit = ing ? getIngredientUnitLabel(ing) : "";
               const isPending = pendingId === p.id;
               const isDeleting = deletingId === p.id;
-              const detailParts = [
-                p.prep_pending ? "รอเตรียม" : null,
-                purchaseHasYield(p) && !p.prep_pending && ing
-                  ? `ซื้อ ${formatQuantityWithHintText(p.gross_quantity ?? p.quantity, getIngredientBaseUnit(ing), { customLabel: ing.unit_label, decimals: 0 })} · ใช้ได้ ${formatQuantityWithHintText(p.quantity, getIngredientBaseUnit(ing), { customLabel: ing.unit_label, decimals: 0 })}`
-                  : purchaseHasYield(p) && !p.prep_pending
-                  ? `ซื้อ ${formatNumber(p.gross_quantity ?? p.quantity, 0)} · ใช้ได้ ${formatNumber(p.quantity, 0)} ${unit}`
-                  : null,
-                p.note,
-              ].filter(Boolean);
+              const detailParts = purchaseDetailParts(p, ing, {
+                formatDate: formatHistoryDate,
+              });
 
               return (
                 <Fragment key={p.id}>
@@ -519,7 +517,7 @@ export function PurchaseHistoryTable({
                           {ing?.name ?? "วัตถุดิบ"}
                         </p>
                         {detailParts.length > 0 && (
-                          <p className="cell-muted mt-0.5 truncate text-xs">
+                          <p className="purchase-history-detail cell-muted mt-0.5 text-xs">
                             {detailParts.join(" · ")}
                           </p>
                         )}
