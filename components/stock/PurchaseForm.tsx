@@ -22,8 +22,8 @@ import { format } from "date-fns";
 
 function defaultPurchaseUnit(ingredient: Ingredient): IngredientUnit {
   const family = getUnitFamily(normalizeStorageUnit(ingredient.unit));
-  if (family === "mass") return "kg";
-  if (family === "volume") return "l";
+  if (family === "mass") return "g";
+  if (family === "volume") return "ml";
   return "piece";
 }
 
@@ -43,7 +43,7 @@ export function PurchaseForm({
     const ing = ingredients.find(
       (i) => i.id === (defaultIngredientId || ingredients[0]?.id)
     );
-    return ing ? defaultPurchaseUnit(ing) : "kg";
+    return ing ? defaultPurchaseUnit(ing) : "g";
   });
   const [quantity, setQuantity] = useState("");
   const [totalPrice, setTotalPrice] = useState("");
