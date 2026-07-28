@@ -3,13 +3,20 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveRecipeItems } from "@/lib/actions";
-import { formatCurrency } from "@/lib/calculations";
+import { formatCurrency, formatNumber, isLowStock } from "@/lib/calculations";
 import { NumberInput } from "@/components/ui";
 import { nativeSelectStyle } from "@/components/ui/native-controls";
 import { BomMobileRow, BomMobileTotal } from "@/components/products/BomMobileRow";
 import { CostSortLabel } from "@/components/products/CostSortLabel";
 import { unitCostFromPriceRef } from "@/lib/unit-cost";
 import { groupIngredientsForSelect } from "@/lib/ingredient-categories";
+import {
+  maxRollsFromBomRows,
+  rollsPossibleForBomRow,
+  rollsYieldColor,
+  stockDisplayColor,
+} from "@/lib/recipe-yield";
+import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
 import {
   sortIndicesByCost,
   type RecipeCostSort,
@@ -91,8 +98,29 @@ export function RecipeEditor({
       row: rows[index],
       index,
       cost: costs[index],
+      rollsPossible: rollsPossibleForBomRow(
+        ingredients.find((item) => item.id === rows[index].ingredient_id),
+        parseFloat(rows[index].quantity_per_roll),
+        existingItems,
+        rows[index].ingredient_id
+      ),
     }));
-  }, [rows, ingredients, costSort]);
+  }, [rows, ingredients, costSort, existingItems]);
+
+  const maxRolls = useMemo(
+    () =>
+      maxRollsFromBomRows(
+        rows
+          .map((row) => ({
+            ingredientId: row.ingredient_id,
+            quantityPerRoll: parseFloat(row.quantity_per_roll),
+          }))
+          .filter((row) => row.ingredientId && row.quantityPerRoll > 0),
+        ingredients,
+        existingItems
+      ),
+    [rows, ingredients, existingItems]
+  );
 
   function addRow(category?: string) {
     const group = category
@@ -162,6 +190,7 @@ export function RecipeEditor({
         <tr>
           <th>วัตถุดิบ</th>
           <th>ใช้/{YIELD_UNIT}</th>
+          <th className="bom-cell-stock">สต็อก</th>
           <th className="bom-cell-cost">
             {rows.length > 0 ? (
               <CostSortLabel
@@ -175,13 +204,15 @@ export function RecipeEditor({
               "ต้นทุน"
             )}
           </th>
+          <th className="bom-cell-yield">ทำได้อีก</th>
           <th aria-label="ลบ" />
         </tr>
       </thead>
       <tbody>
-        {sortedRowEntries.map(({ row, index, cost }) => {
+        {sortedRowEntries.map(({ row, index, cost, rollsPossible }) => {
           const ing = ingredients.find((item) => item.id === row.ingredient_id);
           const unit = ing ? getIngredientUnitLabel(ing) : "";
+          const low = ing ? isLowStock(ing) : false;
 
           return (
             <tr key={`${row.ingredient_id}-${index}`}>
@@ -220,8 +251,35 @@ export function RecipeEditor({
                 />
                 <span className="bom-qty-unit">{unit}</span>
               </td>
+              <td className="bom-cell-stock">
+                {ing ? (
+                  <span
+                    className="tabular-nums text-sm"
+                    style={{ color: stockDisplayColor(ing) }}
+                  >
+                    <StockQuantityDisplay
+                      ingredient={ing}
+                      quantity={ing.current_stock}
+                    />
+                  </span>
+                ) : (
+                  "—"
+                )}
+              </td>
               <td className="bom-cell-cost">
                 {cost > 0 ? formatCurrency(cost) : "—"}
+              </td>
+              <td className="bom-cell-yield">
+                {rollsPossible !== null ? (
+                  <span
+                    className="tabular-nums"
+                    style={{ color: rollsYieldColor(rollsPossible, low) }}
+                  >
+                    {formatNumber(rollsPossible, 0)} {YIELD_UNIT}
+                  </span>
+                ) : (
+                  "—"
+                )}
               </td>
               <td className="bom-cell-action">
                 <button
@@ -240,11 +298,20 @@ export function RecipeEditor({
       {costBreakdown.total > 0 && (
         <tfoot>
           <tr className="bom-foot-total">
-            <td colSpan={2} className="bom-foot-label">
+            <td colSpan={3} className="bom-foot-label">
               รวม/{YIELD_UNIT}
             </td>
             <td className="bom-cell-cost bom-foot-total-value">
               {formatCurrency(costBreakdown.total)}
+            </td>
+            <td className="bom-cell-yield bom-foot-yield-value">
+              {maxRolls > 0 ? (
+                <span style={{ color: "var(--success)" }}>
+                  {formatNumber(maxRolls, 0)} {YIELD_UNIT}
+                </span>
+              ) : (
+                "—"
+              )}
             </td>
             <td />
           </tr>
@@ -255,9 +322,10 @@ export function RecipeEditor({
 
   const mobileFeed = (
     <div className="bom-mobile-feed">
-      {sortedRowEntries.map(({ row, index, cost }) => {
+      {sortedRowEntries.map(({ row, index, cost, rollsPossible }) => {
         const ing = ingredients.find((item) => item.id === row.ingredient_id);
         const unit = ing ? getIngredientUnitLabel(ing) : "";
+        const low = ing ? isLowStock(ing) : false;
 
         return (
           <BomMobileRow
@@ -265,6 +333,9 @@ export function RecipeEditor({
             row={row}
             index={index}
             cost={cost}
+            rollsPossible={rollsPossible}
+            lowStock={low}
+            ingredient={ing}
             unit={unit}
             ingredientGroups={ingredientGroups}
             ingredientName={ing?.name ?? ""}
@@ -273,7 +344,7 @@ export function RecipeEditor({
           />
         );
       })}
-      <BomMobileTotal total={costBreakdown.total} />
+      <BomMobileTotal total={costBreakdown.total} maxRolls={maxRolls} />
     </div>
   );
 
@@ -285,6 +356,15 @@ export function RecipeEditor({
             <h2 className="app-section-title">สูตร (BOM)</h2>
             <p className="bom-toolbar-meta">
               {rows.length} รายการ · ต่อ {YIELD_UNIT}
+              {maxRolls > 0 ? (
+                <>
+                  {" "}
+                  · ทำได้อีก{" "}
+                  <span style={{ color: "var(--success)" }}>
+                    {formatNumber(maxRolls, 0)} {YIELD_UNIT}
+                  </span>
+                </>
+              ) : null}
             </p>
           </div>
           {rows.length > 0 ? (

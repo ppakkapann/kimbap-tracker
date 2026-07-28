@@ -1,10 +1,13 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
-import { formatCurrency } from "@/lib/calculations";
+import { formatCurrency, formatNumber } from "@/lib/calculations";
 import { NumberInput } from "@/components/ui";
 import { nativeSelectStyle } from "@/components/ui/native-controls";
 import type { groupIngredientsForSelect } from "@/lib/ingredient-categories";
+import { rollsYieldColor, stockDisplayColor } from "@/lib/recipe-yield";
+import type { Ingredient } from "@/lib/types";
+import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
 import { YIELD_UNIT } from "@/lib/yield-unit";
 
 type IngredientGroup = ReturnType<typeof groupIngredientsForSelect>[number];
@@ -18,6 +21,9 @@ export function BomMobileRow({
   row,
   index,
   cost,
+  rollsPossible,
+  lowStock,
+  ingredient,
   unit,
   ingredientGroups,
   ingredientName,
@@ -27,6 +33,9 @@ export function BomMobileRow({
   row: BomRowData;
   index: number;
   cost: number;
+  rollsPossible: number | null;
+  lowStock: boolean;
+  ingredient?: Ingredient;
   unit: string;
   ingredientGroups: IngredientGroup[];
   ingredientName: string;
@@ -84,6 +93,25 @@ export function BomMobileRow({
           </div>
         </div>
 
+        <div className="bom-mobile-stat bom-mobile-stat--stock">
+          <span className="bom-mobile-stat-label">สต็อก</span>
+          <span
+            className="bom-mobile-stat-value tabular-nums"
+            style={{
+              color: ingredient ? stockDisplayColor(ingredient) : undefined,
+            }}
+          >
+            {ingredient ? (
+              <StockQuantityDisplay
+                ingredient={ingredient}
+                quantity={ingredient.current_stock}
+              />
+            ) : (
+              "—"
+            )}
+          </span>
+        </div>
+
         <div className="bom-mobile-stat bom-mobile-stat--cost">
           <span className="bom-mobile-stat-label">ต้นทุน</span>
           <span
@@ -93,26 +121,51 @@ export function BomMobileRow({
             {cost > 0 ? formatCurrency(cost) : "—"}
           </span>
         </div>
+
+        <div className="bom-mobile-stat bom-mobile-stat--yield">
+          <span className="bom-mobile-stat-label">ทำได้อีก</span>
+          <span
+            className="bom-mobile-stat-value tabular-nums"
+            style={{ color: rollsYieldColor(rollsPossible, lowStock) }}
+          >
+            {rollsPossible !== null
+              ? `${formatNumber(rollsPossible, 0)} ${YIELD_UNIT}`
+              : "—"}
+          </span>
+        </div>
       </div>
     </article>
   );
 }
 
-export function BomMobileTotal({ total }: { total: number }) {
-  if (total <= 0) return null;
+export function BomMobileTotal({
+  total,
+  maxRolls,
+}: {
+  total: number;
+  maxRolls: number;
+}) {
+  if (total <= 0 && maxRolls <= 0) return null;
 
   return (
     <article className="bom-mobile-card bom-mobile-card--total">
       <div className="bom-mobile-card-stats">
         <div className="bom-mobile-stat">
           <span className="bom-mobile-stat-label">รวม/{YIELD_UNIT}</span>
-        </div>
-        <div className="bom-mobile-stat bom-mobile-stat--cost">
           <span
             className="bom-mobile-stat-value tabular-nums"
-            style={{ color: "var(--accent)" }}
+            style={{ color: total > 0 ? "var(--accent)" : undefined }}
           >
-            {formatCurrency(total)}
+            {total > 0 ? formatCurrency(total) : "—"}
+          </span>
+        </div>
+        <div className="bom-mobile-stat bom-mobile-stat--yield">
+          <span className="bom-mobile-stat-label">ทำได้อีก</span>
+          <span
+            className="bom-mobile-stat-value tabular-nums"
+            style={{ color: maxRolls > 0 ? "var(--success)" : undefined }}
+          >
+            {maxRolls > 0 ? `${formatNumber(maxRolls, 0)} ${YIELD_UNIT}` : "—"}
           </span>
         </div>
       </div>

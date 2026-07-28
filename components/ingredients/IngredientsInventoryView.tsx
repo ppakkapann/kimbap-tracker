@@ -10,8 +10,6 @@ import { PageHeader } from "@/components/ui";
 import { StockControlModalButton } from "@/components/stock/StockControlModalButton";
 import { reorderIngredients } from "@/lib/actions";
 import {
-  formatCurrency,
-  formatNumber,
   getUnitCost,
   isLowStock,
 } from "@/lib/calculations";
@@ -25,17 +23,14 @@ import {
   getCategoryFilterStyle,
   normalizeIngredientCategory,
 } from "@/lib/ingredient-categories";
-import { perRowQuantityFromRecipe } from "@/lib/recipe-batch";
+import { getIngredientRecipeMenus } from "@/lib/recipe-index";
 import { useClientMounted } from "@/lib/use-client-mounted";
-import { rollsPossibleFromRecipe, YIELD_UNIT } from "@/lib/yield-unit";
 import type {
   Ingredient,
   Product,
   Purchase,
   RecipeItem,
 } from "@/lib/types";
-
-import { IngredientMobileTotalCard } from "@/components/ingredients/IngredientMobileCard";
 
 const IngredientSortableList = dynamic(
   () =>
@@ -62,7 +57,6 @@ export function IngredientsInventoryView({
 }) {
   const router = useRouter();
   const [, startTransition] = useTransition();
-  const [productId, setProductId] = useState(products[0]?.id ?? "");
   const [search, setSearch] = useState(initialSearch?.trim() ?? "");
   const [categoryFilter, setCategoryFilter] = useState<string | "all">("all");
   const [searchOpen, setSearchOpen] = useState(Boolean(initialSearch?.trim()));
@@ -145,26 +139,12 @@ export function IngredientsInventoryView({
   const rows = useMemo(() => {
     return orderedIngredients
       .map((ingredient) => {
-        const recipe = recipeItems.find(
-          (item) =>
-            item.product_id === productId &&
-            item.ingredient_id === ingredient.id
-        );
-        const quantityPerRoll = recipe
-          ? perRowQuantityFromRecipe(recipe)
-          : 0;
         const unitCost = getUnitCost(ingredient, purchases);
 
         return {
           ingredient,
           unitCost,
-          quantityPerRoll,
-          costPerRoll: unitCost * quantityPerRoll,
           low: isLowStock(ingredient),
-          rollsPossible:
-            productId && recipe && quantityPerRoll > 0
-              ? rollsPossibleFromRecipe(ingredient.current_stock, recipe)
-              : null,
         };
       })
       .filter(({ ingredient }) => {
@@ -176,14 +156,7 @@ export function IngredientsInventoryView({
         }
         return ingredient.name.toLowerCase().includes(search.toLowerCase().trim());
       });
-  }, [
-    orderedIngredients,
-    productId,
-    recipeItems,
-    purchases,
-    search,
-    categoryFilter,
-  ]);
+  }, [orderedIngredients, purchases, search, categoryFilter]);
 
   useLayoutEffect(() => {
     const card = cardRef.current;
@@ -216,103 +189,25 @@ export function IngredientsInventoryView({
   const listTitle =
     categoryFilter === "all" ? "รายการทั้งหมด" : categoryFilter;
 
-  const costPerRoll = rows.reduce((sum, row) => sum + row.costPerRoll, 0);
-  const totalUnitCost = rows.reduce(
-    (sum, row) => sum + (row.unitCost > 0 ? row.unitCost : 0),
-    0
-  );
-  const activeRows = rows.filter((row) => row.quantityPerRoll > 0);
-  const maxRolls =
-    activeRows.length > 0
-      ? Math.min(...activeRows.map((row) => row.rollsPossible ?? 0))
-      : 0;
-  const currentProduct = products.find((product) => product.id === productId);
-
   const editingRow = useMemo(() => {
     if (!editingId) return null;
     const ingredient = ingredients.find((i) => i.id === editingId);
     if (!ingredient) return null;
-    const recipe = recipeItems.find(
-      (item) =>
-        item.product_id === productId && item.ingredient_id === ingredient.id
-    );
-    const unitCost = getUnitCost(ingredient, purchases);
-    const quantityPerRoll = recipe?.quantity_per_roll ?? 0;
     return {
       ingredient,
-      unitCost,
-      quantityPerRoll,
+      recipeMenus: getIngredientRecipeMenus(
+        ingredient.id,
+        products,
+        recipeItems
+      ),
     };
-  }, [editingId, ingredients, productId, recipeItems, purchases]);
+  }, [editingId, ingredients, products, recipeItems]);
 
   function handleDeleted() {
     setEditingId(null);
     setMessage("ลบวัตถุดิบเรียบร้อย");
     startTransition(() => router.refresh());
   }
-
-  const footerDesktop =
-    productId && rows.length > 0 ? (
-      <div className="ingredient-grid-row ingredient-grid-row--total">
-        <div className="ingredient-grid-cell ingredient-grid-cell--name">
-          <span className="ingredient-head-grip-spacer" aria-hidden />
-          <span className="truncate text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
-            รวม
-            {currentProduct ? (
-              <span
-                className="ml-1 font-normal"
-                style={{ color: "var(--text-muted)" }}
-              >
-                · {currentProduct.name}
-              </span>
-            ) : null}
-          </span>
-        </div>
-        <div className="ingredient-grid-cell ingredient-grid-cell--price">
-          <span
-            className="cell-numeric text-sm font-semibold"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {totalUnitCost > 0 ? formatCurrency(totalUnitCost) : "—"}
-          </span>
-        </div>
-        <div className="ingredient-grid-cell ingredient-grid-cell--stock">
-          <span className="cell-muted text-sm">—</span>
-        </div>
-        <div className="ingredient-grid-cell ingredient-grid-cell--alert">
-          <span className="cell-muted text-sm">—</span>
-        </div>
-        <div className="ingredient-grid-cell ingredient-grid-cell--cost">
-          <span
-            className="cell-numeric text-base font-semibold"
-            style={{ color: "var(--accent)" }}
-          >
-            {formatCurrency(costPerRoll)}
-          </span>
-        </div>
-        <div className="ingredient-grid-cell ingredient-grid-cell--qty">
-          <span className="cell-muted text-sm">—</span>
-        </div>
-        <div className="ingredient-grid-cell ingredient-grid-cell--yield">
-          <span
-            className="cell-numeric text-sm font-medium"
-            style={{ color: "var(--success)" }}
-          >
-            {formatNumber(maxRolls, 0)} {YIELD_UNIT}
-          </span>
-        </div>
-      </div>
-    ) : null;
-
-  const footerMobile =
-    productId && rows.length > 0 ? (
-      <IngredientMobileTotalCard
-        productName={currentProduct?.name}
-        totalUnitCost={totalUnitCost}
-        costPerRoll={costPerRoll}
-        maxRolls={maxRolls}
-      />
-    ) : null;
 
   return (
     <div>
@@ -321,37 +216,6 @@ export function IngredientsInventoryView({
           title="วัตถุดิบ"
           subtitle={`${ingredients.length} รายการ`}
         />
-      )}
-
-      {products.length > 0 && (
-        <div className="mb-5 space-y-3">
-          <p
-            className="text-[11px] font-medium uppercase tracking-wide"
-            style={{ color: "var(--text-muted)" }}
-          >
-            สูตรต่อ{YIELD_UNIT} · เลือกเมนู
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {products.map((product) => {
-              const active = product.id === productId;
-              return (
-                <button
-                  key={product.id}
-                  type="button"
-                  onClick={() => setProductId(product.id)}
-                  className="rounded-full px-3.5 py-1.5 text-sm font-medium transition"
-                  style={{
-                    background: active ? "var(--accent-muted)" : "var(--bg-surface)",
-                    color: active ? "var(--accent)" : "var(--text-secondary)",
-                    border: `1px solid ${active ? "var(--accent)" : "var(--border)"}`,
-                  }}
-                >
-                  {product.name}
-                </button>
-              );
-            })}
-          </div>
-        </div>
       )}
 
       <div ref={cardRef} className="app-card app-card-flush w-full">
@@ -476,7 +340,7 @@ export function IngredientsInventoryView({
           </div>
         ) : (
           <>
-            <div className="hidden md:block ingredient-grid-list max-md:!hidden">
+            <div className="hidden md:block ingredient-grid-list ingredient-grid-list--warehouse max-md:!hidden">
               <div className="ingredient-grid-head">
                 <div className="ingredient-grid-cell ingredient-grid-cell--name">
                   <span className="ingredient-head-grip-spacer" aria-hidden />
@@ -491,24 +355,13 @@ export function IngredientsInventoryView({
                 <span className="ingredient-grid-cell ingredient-grid-cell--alert">
                   แจ้งเตือน
                 </span>
-                <span className="ingredient-grid-cell ingredient-grid-cell--cost">
-                  ต้นทุน / {YIELD_UNIT}
-                </span>
-                <span className="ingredient-grid-cell ingredient-grid-cell--qty">
-                  ใช้ / {YIELD_UNIT}
-                </span>
-                <span className="ingredient-grid-cell ingredient-grid-cell--yield">
-                  ทำได้อีก
-                </span>
               </div>
               <IngredientSortableList
                 rows={rows}
-                productId={productId}
                 canReorder={canReorder}
                 onReorder={handleReorderIds}
                 onEdit={setEditingId}
                 variant="desktop"
-                footer={footerDesktop}
                 allCategories={allCategories}
               />
             </div>
@@ -516,12 +369,10 @@ export function IngredientsInventoryView({
             <div className="ingredient-mobile-feed md:hidden">
               <IngredientSortableList
                 rows={rows}
-                productId={productId}
                 canReorder={canReorder}
                 onReorder={handleReorderIds}
                 onEdit={setEditingId}
                 variant="mobile"
-                footer={footerMobile}
                 allCategories={allCategories}
               />
             </div>
@@ -548,9 +399,9 @@ export function IngredientsInventoryView({
       {editingRow && (
         <IngredientEditModal
           ingredient={editingRow.ingredient}
-          quantityPerRoll={editingRow.quantityPerRoll}
-          productId={productId}
-          productName={currentProduct?.name}
+          quantityPerRoll={0}
+          productId=""
+          recipeMenus={editingRow.recipeMenus}
           onClose={() => setEditingId(null)}
           onDeleted={handleDeleted}
         />

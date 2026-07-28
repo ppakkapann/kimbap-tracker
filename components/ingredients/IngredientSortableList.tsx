@@ -34,40 +34,11 @@ import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
 import {
   IngredientMobileCard,
 } from "@/components/ingredients/IngredientMobileCard";
-import { YIELD_UNIT } from "@/lib/yield-unit";
 
 export interface IngredientRowData {
   ingredient: Ingredient;
   unitCost: number;
-  quantityPerRoll: number;
-  costPerRoll: number;
   low: boolean;
-  rollsPossible: number | null;
-}
-
-function yieldTextColor(row: IngredientRowData): string | undefined {
-  if (row.low) return "var(--danger)";
-  if (row.rollsPossible !== null && row.rollsPossible < 10) return "var(--warning)";
-  return "var(--success)";
-}
-
-function YieldCell({ row }: { row: IngredientRowData }) {
-  const showYield = row.rollsPossible !== null && row.quantityPerRoll > 0;
-
-  return (
-    <div className="ingredient-grid-cell ingredient-grid-cell--yield">
-      {showYield ? (
-        <span
-          className="cell-numeric text-sm tabular-nums"
-          style={{ color: yieldTextColor(row) }}
-        >
-          {formatNumber(row.rollsPossible ?? 0, 0)} {YIELD_UNIT}
-        </span>
-      ) : (
-        <span className="cell-muted text-sm">—</span>
-      )}
-    </div>
-  );
 }
 
 function LowStockDot({ low }: { low: boolean }) {
@@ -176,12 +147,10 @@ function AlertCell({ row }: { row: IngredientRowData }) {
 
 function DesktopRowContent({
   row,
-  productId,
   grip,
   allCategories,
 }: {
   row: IngredientRowData;
-  productId: string;
   grip: ReactNode;
   allCategories: string[];
 }) {
@@ -207,37 +176,16 @@ function DesktopRowContent({
       </div>
       <StockCell row={row} />
       <AlertCell row={row} />
-      <div className="ingredient-grid-cell ingredient-grid-cell--cost">
-        <span className="cell-numeric text-sm">
-          {row.costPerRoll > 0 ? (
-            <span style={{ color: "var(--success)" }}>
-              {formatCurrency(row.costPerRoll)}
-            </span>
-          ) : (
-            <span className="cell-muted">—</span>
-          )}
-        </span>
-      </div>
-      <div className="ingredient-grid-cell ingredient-grid-cell--qty">
-        <span className="cell-numeric cell-muted text-sm">
-          {productId && row.quantityPerRoll > 0
-            ? `${formatNumber(row.quantityPerRoll, 0)} ${unit}`
-            : "—"}
-        </span>
-      </div>
-      <YieldCell row={row} />
     </>
   );
 }
 
 function StaticDesktopRow({
   row,
-  productId,
   onEdit,
   allCategories,
 }: {
   row: IngredientRowData;
-  productId: string;
   onEdit: (id: string) => void;
   allCategories: string[];
 }) {
@@ -254,7 +202,6 @@ function StaticDesktopRow({
     >
       <DesktopRowContent
         row={row}
-        productId={productId}
         grip={<span className="ingredient-head-grip-spacer" aria-hidden />}
         allCategories={allCategories}
       />
@@ -264,12 +211,10 @@ function StaticDesktopRow({
 
 function SortableDesktopRow({
   row,
-  productId,
   onEdit,
   allCategories,
 }: {
   row: IngredientRowData;
-  productId: string;
   onEdit: (id: string) => void;
   allCategories: string[];
 }) {
@@ -303,7 +248,6 @@ function SortableDesktopRow({
     >
       <DesktopRowContent
         row={row}
-        productId={productId}
         grip={<DragHandle listeners={listeners} attributes={attributes} />}
         allCategories={allCategories}
       />
@@ -313,19 +257,16 @@ function SortableDesktopRow({
 
 function StaticMobileRow({
   row,
-  productId,
   onEdit,
   allCategories,
 }: {
   row: IngredientRowData;
-  productId: string;
   onEdit: (id: string) => void;
   allCategories: string[];
 }) {
   return (
     <IngredientMobileCard
       row={row}
-      productId={productId}
       onEdit={onEdit}
       allCategories={allCategories}
       grip={<span className="ingredient-head-grip-spacer" aria-hidden />}
@@ -335,12 +276,10 @@ function StaticMobileRow({
 
 function SortableMobileRow({
   row,
-  productId,
   onEdit,
   allCategories,
 }: {
   row: IngredientRowData;
-  productId: string;
   onEdit: (id: string) => void;
   allCategories: string[];
 }) {
@@ -368,7 +307,6 @@ function SortableMobileRow({
     >
       <IngredientMobileCard
         row={row}
-        productId={productId}
         onEdit={onEdit}
         allCategories={allCategories}
         grip={<DragHandle listeners={listeners} attributes={attributes} />}
@@ -379,12 +317,10 @@ function SortableMobileRow({
 
 function DragPreview({
   row,
-  productId,
   variant,
   allCategories,
 }: {
   row: IngredientRowData;
-  productId: string;
   variant: "desktop" | "mobile";
   allCategories: string[];
 }) {
@@ -393,7 +329,6 @@ function DragPreview({
       <div className="ingredient-drag-preview ingredient-grid-row">
         <DesktopRowContent
           row={row}
-          productId={productId}
           allCategories={allCategories}
           grip={
             <span className="ingredient-grip-handle ingredient-grip-handle--active">
@@ -409,7 +344,6 @@ function DragPreview({
     <div className="ingredient-drag-preview ingredient-mobile-card">
       <IngredientMobileCard
         row={row}
-        productId={productId}
         onEdit={() => {}}
         allCategories={allCategories}
         grip={
@@ -424,7 +358,6 @@ function DragPreview({
 
 export function IngredientSortableList({
   rows,
-  productId,
   canReorder,
   onReorder,
   onEdit,
@@ -433,7 +366,6 @@ export function IngredientSortableList({
   allCategories,
 }: {
   rows: IngredientRowData[];
-  productId: string;
   canReorder: boolean;
   onReorder: (orderedIds: string[]) => void;
   onEdit: (id: string) => void;
@@ -486,7 +418,6 @@ export function IngredientSortableList({
           <StaticRow
             key={row.ingredient.id}
             row={row}
-            productId={productId}
             onEdit={onEdit}
             allCategories={allCategories}
           />
@@ -512,7 +443,6 @@ export function IngredientSortableList({
           <SortableRow
             key={row.ingredient.id}
             row={row}
-            productId={productId}
             onEdit={onEdit}
             allCategories={allCategories}
           />
@@ -529,7 +459,6 @@ export function IngredientSortableList({
         {activeRow ? (
           <DragPreview
             row={activeRow}
-            productId={productId}
             variant={variant}
             allCategories={allCategories}
           />

@@ -2,7 +2,7 @@
 
 import { ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
-import { formatCurrency, formatNumber } from "@/lib/calculations";
+import { formatCurrency } from "@/lib/calculations";
 import {
   getCategoryBadgeStyle,
   getIngredientCategoryLabel,
@@ -11,16 +11,7 @@ import { getInventoryStockStatus } from "@/lib/stock-analysis";
 import type { Ingredient } from "@/lib/types";
 import { getIngredientUnitLabel } from "@/lib/types";
 import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
-import { YIELD_UNIT } from "@/lib/yield-unit";
 import type { IngredientRowData } from "@/components/ingredients/IngredientSortableList";
-
-function yieldTextColor(row: IngredientRowData): string | undefined {
-  if (row.low) return "var(--danger)";
-  if (row.rollsPossible !== null && row.rollsPossible < 10) {
-    return "var(--warning)";
-  }
-  return "var(--success)";
-}
 
 function LowStockDot({ low }: { low: boolean }) {
   if (!low) return null;
@@ -66,20 +57,17 @@ function StockStatusBadge({ ingredient }: { ingredient: Ingredient }) {
 
 export function IngredientMobileCard({
   row,
-  productId,
   onEdit,
   allCategories,
   grip,
 }: {
   row: IngredientRowData;
-  productId: string;
   onEdit: (id: string) => void;
   allCategories: string[];
   grip?: ReactNode;
 }) {
   const { ingredient } = row;
   const unit = getIngredientUnitLabel(ingredient);
-  const showYield = row.rollsPossible !== null && row.quantityPerRoll > 0;
 
   return (
     <article className="ingredient-mobile-card">
@@ -116,39 +104,6 @@ export function IngredientMobileCard({
             <span>
               {row.unitCost > 0 ? formatCurrency(row.unitCost) : "—"}/หน่วย
             </span>
-            {row.costPerRoll > 0 ? (
-              <>
-                <span className="ingredient-mobile-card-dot" aria-hidden>
-                  ·
-                </span>
-                <span style={{ color: "var(--accent)" }}>
-                  {formatCurrency(row.costPerRoll)}/{YIELD_UNIT}
-                </span>
-              </>
-            ) : null}
-            {productId && row.quantityPerRoll > 0 ? (
-              <>
-                <span className="ingredient-mobile-card-dot" aria-hidden>
-                  ·
-                </span>
-                <span>
-                  ใช้ {formatNumber(row.quantityPerRoll, 0)} {unit}
-                </span>
-              </>
-            ) : null}
-            {showYield ? (
-              <>
-                <span className="ingredient-mobile-card-dot" aria-hidden>
-                  ·
-                </span>
-                <span
-                  className="tabular-nums"
-                  style={{ color: yieldTextColor(row) }}
-                >
-                  ทำได้ {formatNumber(row.rollsPossible ?? 0, 0)} {YIELD_UNIT}
-                </span>
-              </>
-            ) : null}
           </div>
         </div>
         <ChevronRight
@@ -158,50 +113,6 @@ export function IngredientMobileCard({
           aria-hidden
         />
       </button>
-    </article>
-  );
-}
-
-export function IngredientMobileTotalCard({
-  productName,
-  totalUnitCost,
-  costPerRoll,
-  maxRolls,
-}: {
-  productName?: string;
-  totalUnitCost: number;
-  costPerRoll: number;
-  maxRolls: number;
-}) {
-  return (
-    <article className="ingredient-mobile-card ingredient-mobile-card--total">
-      <div className="ingredient-mobile-card-body">
-        <div className="ingredient-mobile-card-top">
-          <div className="ingredient-mobile-card-head">
-            <p className="ingredient-mobile-card-title">รวม</p>
-            {productName ? (
-              <span className="ingredient-mobile-card-product">{productName}</span>
-            ) : null}
-          </div>
-          <div
-            className="ingredient-mobile-card-stock tabular-nums"
-            style={{ color: "var(--success)" }}
-          >
-            {formatNumber(maxRolls, 0)} {YIELD_UNIT}
-          </div>
-        </div>
-        <div className="ingredient-mobile-card-meta">
-          <span>
-            {totalUnitCost > 0 ? formatCurrency(totalUnitCost) : "—"}/หน่วย
-          </span>
-          <span className="ingredient-mobile-card-dot" aria-hidden>
-            ·
-          </span>
-          <span style={{ color: "var(--accent)" }}>
-            {formatCurrency(costPerRoll)}/{YIELD_UNIT}
-          </span>
-        </div>
-      </div>
     </article>
   );
 }

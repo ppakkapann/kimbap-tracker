@@ -3699,6 +3699,46 @@ a.app-stat-link:focus-visible {
   color: var(--text-secondary);
 }
 
+.ingredient-edit-recipe-menu-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ingredient-edit-recipe-menu-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.625rem 0.75rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.625rem;
+  background: var(--bg-base);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ingredient-edit-recipe-menu-link:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-subtle));
+  background: var(--bg-hover);
+}
+
+.ingredient-edit-recipe-menu-name {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.ingredient-edit-recipe-menu-qty {
+  flex-shrink: 0;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
 .ingredient-edit-yield-badge {
   display: inline-flex;
   align-items: center;
@@ -4393,6 +4433,10 @@ a.app-stat-link:focus-visible {
   --cell-py: 0.8125rem;
   --cell-px: 1rem;
   --cell-px-edge: 1.5rem;
+}
+
+.ingredient-grid-list--warehouse {
+  --ingredient-grid-cols: minmax(0, 1.65fr) 0.82fr 0.88fr 1fr;
 }
 
 .ingredient-grid-head,
@@ -5544,11 +5588,27 @@ a.app-stat-link:focus-visible {
 }
 
 .bom-table thead th:nth-child(3),
+.bom-table tbody td.bom-cell-stock,
+.bom-table tfoot td.bom-cell-stock {
+  text-align: right;
+  width: 5rem;
+  min-width: 5rem;
+}
+
+.bom-table thead th:nth-child(4),
 .bom-table tbody td.bom-cell-cost,
 .bom-table tfoot td.bom-cell-cost {
   text-align: right;
   width: 5.75rem;
   min-width: 5.75rem;
+}
+
+.bom-table thead th:nth-child(5),
+.bom-table tbody td.bom-cell-yield,
+.bom-table tfoot td.bom-cell-yield {
+  text-align: right;
+  width: 5.5rem;
+  min-width: 5.5rem;
 }
 
 .bom-table thead th:last-child {
@@ -8866,8 +8926,13 @@ a.app-stat-link:focus-visible {
 
 /* Mobile feed cards — products menu & ingredient inventory */
 @media (max-width: 767px) {
-  .ingredient-grid-list {
+  .ingredient-grid-list:not(.history-grid-list) {
     display: none !important;
+  }
+
+  .stock-history-grid .history-grid-list.history-mobile-feed {
+    display: flex !important;
+    flex-direction: column;
   }
 
   .products-mobile-feed {
@@ -9216,7 +9281,7 @@ a.app-stat-link:focus-visible {
 
   .bom-mobile-card-stats {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     gap: 0.75rem;
     margin-top: 0.75rem;
     padding-top: 0.75rem;
@@ -9230,7 +9295,9 @@ a.app-stat-link:focus-visible {
     min-width: 0;
   }
 
-  .bom-mobile-stat--cost {
+  .bom-mobile-stat--cost,
+  .bom-mobile-stat--yield,
+  .bom-mobile-stat--stock {
     align-items: flex-end;
     text-align: right;
   }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
@@ -30,6 +31,7 @@ import { UNIT_LABELS } from "@/lib/types";
 import { yieldPercentFromQuantities } from "@/lib/purchase-yield";
 import { PREP_ESTIMATE_PRESETS } from "@/lib/purchase-prep";
 import { YIELD_UNIT } from "@/lib/yield-unit";
+import type { IngredientRecipeMenuLink } from "@/lib/recipe-index";
 import {
   getUnitFamily,
   normalizeStorageUnit,
@@ -60,6 +62,7 @@ export function IngredientEditModal({
   quantityPerRoll,
   productId,
   productName,
+  recipeMenus = [],
   onClose,
   onDeleted,
 }: {
@@ -67,6 +70,7 @@ export function IngredientEditModal({
   quantityPerRoll: number;
   productId: string;
   productName?: string;
+  recipeMenus?: IngredientRecipeMenuLink[];
   onClose: () => void;
   onDeleted?: () => void;
 }) {
@@ -616,6 +620,36 @@ export function IngredientEditModal({
                     </label>
                   )}
                 </div>
+              </section>
+            ) : null}
+
+            {!productId ? (
+              <section className="ingredient-edit-section ingredient-edit-section--panel">
+                <h3 className="ingredient-edit-section-title">ใช้ในสูตรเมนู</h3>
+                {recipeMenus.length === 0 ? (
+                  <p className="ingredient-edit-hint">
+                    ยังไม่ถูกใช้ในเมนูใด — แก้สูตรได้ที่หน้าเมนู
+                  </p>
+                ) : (
+                  <ul className="ingredient-edit-recipe-menu-list">
+                    {recipeMenus.map((menu) => (
+                      <li key={menu.productId}>
+                        <Link
+                          href={`/products/${menu.productId}`}
+                          className="ingredient-edit-recipe-menu-link"
+                          onClick={onClose}
+                        >
+                          <span className="ingredient-edit-recipe-menu-name">
+                            {menu.productName}
+                          </span>
+                          <span className="ingredient-edit-recipe-menu-qty tabular-nums">
+                            {formatNumber(menu.quantityPerRoll, 2)} / {YIELD_UNIT}
+                          </span>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                )}
               </section>
             ) : null}
           </div>
