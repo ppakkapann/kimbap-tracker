@@ -16,7 +16,7 @@ import {
 import { formatCurrency } from "@/lib/calculations";
 import type { ProductWithCost, Sale } from "@/lib/types";
 import { format } from "date-fns";
-import { Input, NumberInput } from "@/components/ui";
+import { Input, NumberInput, AppModal } from "@/components/ui";
 
 const LOCATION_DATALIST_ID = "sale-edit-location-suggestions";
 
@@ -152,37 +152,13 @@ export function SaleEditModal({
   }
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)" }}
-      onClick={onClose}
+    <AppModal
+      open
+      onClose={onClose}
+      title="แก้ไขรายการขาย"
+      subtitle={sale.product?.name ?? "รายการขาย"}
     >
-      <div
-        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-6"
-        style={{
-          background: "var(--bg-elevated)",
-          border: "1px solid var(--border)",
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="app-section-title text-lg">แก้ไขรายการขาย</h2>
-            <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-              {sale.product?.name ?? "รายการขาย"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-xl leading-none"
-            style={{ color: "var(--text-muted)" }}
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block space-y-1.5">
             <span className="app-label">เมนู</span>
             <select
@@ -311,7 +287,6 @@ export function SaleEditModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </AppModal>
   );
 }

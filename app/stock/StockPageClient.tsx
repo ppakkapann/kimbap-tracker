@@ -106,7 +106,11 @@ export function StockPageClient({
             <p className="history-panel-subtitle">
               ซื้อ · ขาย · ตัดออก · ตรวจนับ — จัดตามเดือน
             </p>
-            <StockMovementHistory movements={movements} purchases={purchases} />
+            <StockMovementHistory
+              movements={movements}
+              purchases={purchases}
+              today={today}
+            />
           </div>
           <div className="app-card history-panel-card">
             <h2 className="app-section-title mb-1">ประวัติการซื้อ</h2>

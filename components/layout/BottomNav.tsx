@@ -5,12 +5,12 @@ import { usePathname } from "next/navigation";
 import { useSalesNavHref } from "@/lib/use-sales-nav-href";
 
 const navItems = [
-  { href: "/", label: "หน้าหลัก", icon: "◫" },
-  { href: "/accounting", label: "บัญชี", icon: "◉" },
-  { href: "/sales", label: "ขาย", icon: "＋", highlight: true },
+  { href: "/", label: "แดชบอร์ด", icon: "◫" },
   { href: "/stock", label: "สต็อก", icon: "◧" },
-  { href: "/reports", label: "รายงาน", icon: "◈" },
+  { href: "/sales", label: "ยอดขาย", icon: "＋", highlight: true },
   { href: "/products", label: "เมนู", icon: "◎" },
+  { href: "/accounting", label: "บัญชี", icon: "◉" },
+  { href: "/reports", label: "รายงาน", icon: "◈" },
 ];
 
 export function BottomNav() {
@@ -21,7 +21,7 @@ export function BottomNav() {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 border-t md:hidden"
+      className="fixed bottom-0 left-0 right-0 z-40 border-t md:hidden"
       style={{
         background: "var(--bg-surface)",
         borderColor: "var(--border)",

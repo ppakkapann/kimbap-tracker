@@ -50,6 +50,7 @@ import type {
   StockMovement,
 } from "@/lib/types";
 import { format, subDays } from "date-fns";
+import { buildAppNotifications, type AppNotification } from "@/lib/notifications";
 
 type SalePresetRow = Pick<Sale, "channel" | "created_at" | "gp_percent">;
 
@@ -95,6 +96,22 @@ export const fetchPurchases = cache(async function fetchPurchases(
 
   const { data } = await query;
   return data ?? [];
+});
+
+export const fetchAppNotifications = cache(async function fetchAppNotifications(): Promise<
+  AppNotification[]
+> {
+  const [ingredients, purchases, productsWithCost] = await Promise.all([
+    fetchIngredients(),
+    fetchPurchases(),
+    fetchProductsWithCost(),
+  ]);
+
+  return buildAppNotifications({
+    ingredients,
+    purchases,
+    productsWithCost,
+  });
 });
 
 export const fetchProducts = cache(async function fetchProducts(): Promise<

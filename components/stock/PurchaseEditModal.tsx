@@ -8,7 +8,7 @@ import { formatCurrency, formatNumber } from "@/lib/calculations";
 import { purchaseHasYield } from "@/lib/purchase-yield";
 import type { Ingredient, Purchase } from "@/lib/types";
 import { getIngredientUnitLabel } from "@/lib/types";
-import { DatePicker, Input, NumberInput } from "@/components/ui";
+import { DatePicker, Input, NumberInput, AppModal } from "@/components/ui";
 
 export function PurchaseEditModal({
   purchase,
@@ -87,40 +87,13 @@ export function PurchaseEditModal({
   const hasYield = purchaseHasYield(purchase);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.7)" }}
-      onClick={onClose}
+    <AppModal
+      open
+      onClose={onClose}
+      title="แก้ไขการซื้อ"
+      subtitle={`${ingredient.name}${hasYield ? " · มี Yield" : ""}${purchase.prep_pending ? " · รอเตรียม" : ""}`}
     >
-      <div
-        className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-6"
-        style={{
-          background: "var(--bg-elevated)",
-          border: "1px solid var(--border)",
-        }}
-        onClick={(event) => event.stopPropagation()}
-      >
-        <div className="mb-5 flex items-start justify-between gap-3">
-          <div>
-            <h2 className="app-section-title text-lg">แก้ไขการซื้อ</h2>
-            <p className="mt-1 text-xs" style={{ color: "var(--text-muted)" }}>
-              {ingredient.name}
-              {hasYield && " · มี Yield"}
-              {purchase.prep_pending && " · รอเตรียม"}
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="text-xl leading-none"
-            style={{ color: "var(--text-muted)" }}
-            aria-label="ปิด"
-          >
-            ×
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-4">
           <label className="block space-y-1.5">
             <span className="app-label">จำนวนใช้ได้ ({unit})</span>
             <NumberInput
@@ -218,7 +191,6 @@ export function PurchaseEditModal({
             </button>
           </div>
         </form>
-      </div>
-    </div>
+    </AppModal>
   );
 }

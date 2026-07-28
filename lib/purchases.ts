@@ -5,8 +5,8 @@ import { getIngredientBaseUnit, getIngredientUnitLabel } from "./types";
 import { formatQuantityWithHintText } from "./unit-conversion";
 import { groupByMonth, type MonthGroup } from "./history-groups";
 
-export type { HistoryPeriod } from "./history-groups";
-export { filterByPeriod, groupByMonth } from "./history-groups";
+export type { HistoryDateRange, HistoryRangePreset } from "./history-groups";
+export { filterByDateRange, groupByMonth } from "./history-groups";
 
 /** การซื้อจริง = มี stock_movement ประเภท purchase อ้างอิง (จาก + เติมสต็อก) */
 export function filterActualPurchases(

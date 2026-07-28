@@ -4,7 +4,10 @@ import { nativeSelectStyle } from "./native-controls";
 import { DatePicker } from "./DatePicker";
 import { NumberInput } from "./NumberInput";
 
-export { DatePicker, NumberInput };
+export { AppModal } from "./AppModal";
+export { DatePicker } from "./DatePicker";
+export { DateRangeCalendar } from "./DateRangeCalendar";
+export { NumberInput } from "./NumberInput";
 
 export function Card({
   children,

@@ -3,32 +3,6 @@
 import type { ReactNode } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
-import { SegmentToggle } from "@/components/ui";
-import type { HistoryPeriod } from "@/lib/history-groups";
-
-const PERIOD_OPTIONS: { value: HistoryPeriod; label: string }[] = [
-  { value: "month", label: "เดือนนี้" },
-  { value: "quarter", label: "3 เดือน" },
-  { value: "all", label: "ทั้งหมด" },
-];
-
-export function HistoryPeriodToggle({
-  value,
-  onChange,
-}: {
-  value: HistoryPeriod;
-  onChange: (period: HistoryPeriod) => void;
-}) {
-  return (
-    <SegmentToggle
-      className="app-segment-toggle--inline"
-      ariaLabel="ช่วงเวลา"
-      value={value}
-      onChange={onChange}
-      options={PERIOD_OPTIONS}
-    />
-  );
-}
 
 export function HistoryMonthHeader({
   monthKey,
@@ -63,17 +37,19 @@ export function HistoryTableShell({
 }) {
   return (
     <div className="history-table-shell">
-      <div className="history-table-head-wrap">
-        {periodToggle ? (
-          <div className="history-table-period-bar">{periodToggle}</div>
-        ) : null}
-        <div
-          className={`ingredient-grid-list history-grid-list history-grid-list--${variant}`}
-        >
-          <div className="ingredient-grid-head history-grid-head">{columns}</div>
+      {periodToggle ? (
+        <div className="history-table-period-bar">{periodToggle}</div>
+      ) : null}
+      <div className="history-table-scroll-x">
+        <div className="history-table-head-wrap">
+          <div
+            className={`ingredient-grid-list history-grid-list history-grid-list--${variant}`}
+          >
+            <div className="ingredient-grid-head history-grid-head">{columns}</div>
+          </div>
         </div>
+        <div className="history-table-body-scroll">{children}</div>
       </div>
-      <div className="history-table-body-scroll">{children}</div>
       {footer}
     </div>
   );

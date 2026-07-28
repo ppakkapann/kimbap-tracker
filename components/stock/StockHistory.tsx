@@ -7,9 +7,9 @@ import { th } from "date-fns/locale";
 import { Activity, ShoppingBag, Trash2 } from "lucide-react";
 import { deletePurchase } from "@/lib/actions";
 import { formatCurrency, formatNumber } from "@/lib/calculations";
-import { filterByPeriod } from "@/lib/history-groups";
+import { filterByDateRange, defaultHistoryDateRange } from "@/lib/history-groups";
+import type { HistoryDateRange } from "@/lib/history-groups";
 import { purchaseDetailParts } from "@/lib/purchases";
-import type { HistoryPeriod } from "@/lib/history-groups";
 import type { Ingredient, Purchase, StockMovement } from "@/lib/types";
 import {
   getIngredientUnitLabel,
@@ -17,8 +17,8 @@ import {
 } from "@/lib/types";
 import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
 import { PurchaseEditModal } from "@/components/stock/PurchaseEditModal";
+import { HistoryDateRangePicker } from "@/components/stock/HistoryDateRangePicker";
 import {
-  HistoryPeriodToggle,
   HistoryTableMonthRow,
   HistoryTableShell,
 } from "@/components/stock/HistoryPanelParts";
@@ -118,12 +118,16 @@ const purchaseColumns = (
 export function StockMovementHistory({
   movements,
   purchases,
+  today,
 }: {
   movements: StockMovement[];
   purchases: Purchase[];
+  today: string;
 }) {
   const [typeFilter, setTypeFilter] = useState<StockMovementType | "all">("all");
-  const [period, setPeriod] = useState<HistoryPeriod>("quarter");
+  const [dateRange, setDateRange] = useState<HistoryDateRange>(() =>
+    defaultHistoryDateRange(today)
+  );
   const purchaseMap = new Map(purchases.map((p) => [p.id, p]));
 
   const sortedMovements = useMemo(
@@ -136,8 +140,14 @@ export function StockMovementHistory({
   );
 
   const periodMovements = useMemo(
-    () => filterByPeriod(sortedMovements, (m) => m.created_at, period),
-    [sortedMovements, period]
+    () =>
+      filterByDateRange(
+        sortedMovements,
+        (m) => m.created_at,
+        dateRange,
+        new Date(`${today}T12:00:00`)
+      ),
+    [sortedMovements, dateRange, today]
   );
 
   const filtered = useMemo(
@@ -190,7 +200,11 @@ export function StockMovementHistory({
         variant="movement"
         columns={movementColumns}
         periodToggle={
-          <HistoryPeriodToggle value={period} onChange={setPeriod} />
+          <HistoryDateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+            today={today}
+          />
         }
         footer={
           filtered.length > 0 ? (
@@ -313,17 +327,24 @@ export function PurchaseHistoryTable({
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState("");
-  const [period, setPeriod] = useState<HistoryPeriod>("quarter");
+  const [dateRange, setDateRange] = useState<HistoryDateRange>(() =>
+    defaultHistoryDateRange(today)
+  );
 
   const ingredientMap = new Map(ingredients.map((i) => [i.id, i]));
 
   const periodPurchases = useMemo(() => {
     const now = new Date(`${today}T12:00:00`);
-    return filterByPeriod(purchases, (p) => p.purchased_at, period, now).sort(
+    return filterByDateRange(
+      purchases,
+      (p) => p.purchased_at,
+      dateRange,
+      now
+    ).sort(
       (a, b) =>
         new Date(b.purchased_at).getTime() - new Date(a.purchased_at).getTime()
     );
-  }, [purchases, period, today]);
+  }, [purchases, dateRange, today]);
 
   const totalSpent = useMemo(
     () => periodPurchases.reduce((sum, p) => sum + p.total_price, 0),
@@ -413,7 +434,7 @@ export function PurchaseHistoryTable({
               {formatCurrency(totalSpent)}
             </span>
           </div>
-          {thisMonthStats && period !== "month" && (
+          {thisMonthStats && dateRange.preset !== "month" && (
             <div className="purchase-history-stat">
               <span className="purchase-history-stat-label">เดือนนี้</span>
               <span className="purchase-history-stat-value tabular-nums">
@@ -441,7 +462,11 @@ export function PurchaseHistoryTable({
         variant="purchase"
         columns={purchaseColumns}
         periodToggle={
-          <HistoryPeriodToggle value={period} onChange={setPeriod} />
+          <HistoryDateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+            today={today}
+          />
         }
         footer={
           periodPurchases.length > 0 ? (

@@ -2,8 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Google_Sans } from "next/font/google";
 import { BottomNav } from "@/components/layout/BottomNav";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { AppHeader } from "@/components/layout/AppHeader";
-import { isDemoMode } from "@/lib/config";
+import { AppShellChrome } from "@/components/layout/AppShellChrome";
 import "./globals.css";
 
 const googleSans = Google_Sans({
@@ -44,8 +43,8 @@ export default function RootLayout({
         <div className="app-shell">
           <Sidebar />
           <div className="app-main">
-            <AppHeader demo={isDemoMode()} />
-            <main className="app-content pb-24 md:pb-8">{children}</main>
+            <AppShellChrome />
+            <main className="app-content pb-nav-safe md:pb-8">{children}</main>
           </div>
         </div>
         <BottomNav />

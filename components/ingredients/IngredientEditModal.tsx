@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   deleteIngredient,
@@ -302,10 +303,27 @@ export function IngredientEditModal({
     onClose();
   }
 
-  return (
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
+    }
+
+    document.body.style.overflow = "hidden";
+    document.addEventListener("keydown", onKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [onClose]);
+
+  return createPortal(
     <div
-      className="ingredient-edit-modal-overlay"
+      className="app-modal-overlay"
       onClick={onClose}
+      role="presentation"
     >
       <div
         className="ingredient-edit-modal"
@@ -635,6 +653,7 @@ export function IngredientEditModal({
           </footer>
         </form>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 }

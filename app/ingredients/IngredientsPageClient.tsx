@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { IngredientForm } from "@/components/ingredients/IngredientForm";
 import { PurchaseForm } from "@/components/stock/PurchaseForm";
+import { AppModal } from "@/components/ui";
 import type { Ingredient } from "@/lib/types";
 
 export function IngredientsPageClient({
@@ -41,41 +42,21 @@ export function IngredientsPageClient({
       <button type="button" onClick={() => setOpen(true)} className={btnClass}>
         {label}
       </button>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ background: "rgba(0,0,0,0.7)" }}
-          onClick={() => setOpen(false)}
-        >
-          <div
-            className="w-full max-w-md max-h-[90vh] overflow-y-auto rounded-2xl p-6"
-            style={{ background: "var(--bg-elevated)", border: "1px solid var(--border)" }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="mb-5 flex items-center justify-between">
-              <h2 className="app-section-title text-lg">
-                {mode === "add" ? "เพิ่มวัตถุดิบ" : "เติมสต็อกและบันทึกการซื้อ"}
-              </h2>
-              <button
-                onClick={() => setOpen(false)}
-                className="text-xl leading-none"
-                style={{ color: "var(--text-muted)" }}
-              >
-                ×
-              </button>
-            </div>
-            {mode === "add" ? (
-              <IngredientForm ingredients={ingredients} onSuccess={handleSuccess} />
-            ) : (
-              <PurchaseForm
-                ingredients={ingredients}
-                defaultIngredientId={defaultIngredientId}
-                onSuccess={handleSuccess}
-              />
-            )}
-          </div>
-        </div>
-      )}
+      <AppModal
+        open={open}
+        onClose={() => setOpen(false)}
+        title={mode === "add" ? "เพิ่มวัตถุดิบ" : "เติมสต็อกและบันทึกการซื้อ"}
+      >
+        {mode === "add" ? (
+          <IngredientForm ingredients={ingredients} onSuccess={handleSuccess} />
+        ) : (
+          <PurchaseForm
+            ingredients={ingredients}
+            defaultIngredientId={defaultIngredientId}
+            onSuccess={handleSuccess}
+          />
+        )}
+      </AppModal>
     </>
   );
 }

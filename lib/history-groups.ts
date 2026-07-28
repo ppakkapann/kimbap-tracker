@@ -56,26 +56,53 @@ export function groupByDay<T>(
     .map(([dateKey, groupItems]) => ({ dateKey, items: groupItems }));
 }
 
-export type HistoryPeriod = "month" | "quarter" | "all";
+export type HistoryRangePreset = "month" | "all" | "custom";
 
-export function filterByPeriod<T>(
+export interface HistoryDateRange {
+  preset: HistoryRangePreset;
+  startDate: string;
+  endDate: string;
+}
+
+export function monthStartFromToday(today: string): string {
+  return `${today.slice(0, 7)}-01`;
+}
+
+export function defaultHistoryDateRange(today: string): HistoryDateRange {
+  return {
+    preset: "month",
+    startDate: monthStartFromToday(today),
+    endDate: today,
+  };
+}
+
+export function filterByDateRange<T>(
   items: T[],
   getDate: (item: T) => string,
-  period: HistoryPeriod,
+  range: HistoryDateRange,
   now = new Date()
 ): T[] {
-  if (period === "all") return items;
+  if (range.preset === "all") return items;
 
-  const cutoff = new Date(now);
-  if (period === "month") {
-    cutoff.setDate(1);
-    cutoff.setHours(0, 0, 0, 0);
+  let startStr: string;
+  let endStr: string;
+
+  if (range.preset === "month") {
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, "0");
+    startStr = `${year}-${month}-01`;
+    endStr = `${year}-${month}-${String(now.getDate()).padStart(2, "0")}`;
   } else {
-    cutoff.setMonth(cutoff.getMonth() - 3);
-    cutoff.setHours(0, 0, 0, 0);
+    startStr = range.startDate;
+    endStr = range.endDate;
   }
 
-  return items.filter((item) => new Date(getDate(item)) >= cutoff);
+  if (!startStr || !endStr) return items;
+
+  return items.filter((item) => {
+    const dateStr = getDate(item).slice(0, 10);
+    return dateStr >= startStr && dateStr <= endStr;
+  });
 }
 
 export function sumPurchaseTotal(

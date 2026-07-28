@@ -359,48 +359,45 @@ function StaticMobileRow({
   return (
     <div className="ingredient-mobile-row">
       <button type="button" onClick={() => onEdit(id)} className="ingredient-mobile-row-main">
-      <div className="flex min-w-0 flex-1 items-start gap-2">
         <span className="ingredient-head-grip-spacer" aria-hidden />
-        <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
-          <LowStockDot low={row.low} />
-          <span className="font-medium">{row.ingredient.name}</span>
-          <CategoryBadge ingredient={row.ingredient} allCategories={allCategories} />
-          <span className="text-xs" style={{ color: "var(--text-muted)" }}>
+        <div className="ingredient-mobile-main">
+          <div className="ingredient-mobile-title-row">
+            <LowStockDot low={row.low} />
+            <span className="ingredient-mobile-name">{row.ingredient.name}</span>
+          </div>
+          <div className="ingredient-mobile-tags-row">
+            <CategoryBadge ingredient={row.ingredient} allCategories={allCategories} />
+            <span className="ingredient-mobile-unit">{unit}</span>
+          </div>
+          <div className="ingredient-mobile-stats-row">
+            <span>
+              {row.unitCost > 0 ? formatCurrency(row.unitCost) : "—"}/หน่วย
+            </span>
+            <MobileAlertText row={row} />
+            {row.costPerRoll > 0 && (
+              <span style={{ color: "var(--success)" }}>
+                {formatCurrency(row.costPerRoll)}/{YIELD_UNIT}
+              </span>
+            )}
+            {productId && row.quantityPerRoll > 0 && (
+              <span>
+                ใช้ {formatNumber(row.quantityPerRoll, 0)} {unit}
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="ingredient-mobile-side">
+          <span
+            className="text-sm font-semibold tabular-nums leading-none"
+            style={{ color: row.low ? "var(--danger)" : "var(--text-primary)" }}
+          >
+            {formatNumber(row.ingredient.current_stock, 0)}
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
             {unit}
           </span>
+          <MobileYieldText row={row} />
         </div>
-        <div
-          className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums"
-          style={{ color: "var(--text-muted)" }}
-        >
-          <span>
-            {row.unitCost > 0 ? formatCurrency(row.unitCost) : "—"}/หน่วย
-          </span>
-          <MobileAlertText row={row} />
-          {row.costPerRoll > 0 && (
-            <span style={{ color: "var(--success)" }}>
-              {formatCurrency(row.costPerRoll)}
-            </span>
-          )}
-          {productId && row.quantityPerRoll > 0 && (
-            <span>{formatNumber(row.quantityPerRoll, 0)}/{YIELD_UNIT}</span>
-          )}
-        </div>
-        </div>
-      </div>
-      <div className="ingredient-mobile-side">
-        <span
-          className="text-sm font-medium tabular-nums leading-none"
-          style={{ color: row.low ? "var(--danger)" : "var(--text-primary)" }}
-        >
-          {formatNumber(row.ingredient.current_stock, 0)}
-        </span>
-        <span className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>
-          {unit}
-        </span>
-        <MobileYieldText row={row} />
-      </div>
       </button>
     </div>
   );
@@ -448,48 +445,45 @@ function SortableMobileRow({
         }}
         className="ingredient-mobile-row-main"
       >
-      <div className="flex min-w-0 flex-1 items-start gap-2">
         <DragHandle listeners={listeners} attributes={attributes} />
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+        <div className="ingredient-mobile-main">
+          <div className="ingredient-mobile-title-row">
             <LowStockDot low={row.low} />
-            <span className="font-medium">{row.ingredient.name}</span>
-            <CategoryBadge ingredient={row.ingredient} allCategories={allCategories} />
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-              {unit}
-            </span>
+            <span className="ingredient-mobile-name">{row.ingredient.name}</span>
           </div>
-          <div
-            className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums"
-            style={{ color: "var(--text-muted)" }}
-          >
+          <div className="ingredient-mobile-tags-row">
+            <CategoryBadge ingredient={row.ingredient} allCategories={allCategories} />
+            <span className="ingredient-mobile-unit">{unit}</span>
+          </div>
+          <div className="ingredient-mobile-stats-row">
             <span>
               {row.unitCost > 0 ? formatCurrency(row.unitCost) : "—"}/หน่วย
             </span>
             <MobileAlertText row={row} />
             {row.costPerRoll > 0 && (
               <span style={{ color: "var(--success)" }}>
-                {formatCurrency(row.costPerRoll)}
+                {formatCurrency(row.costPerRoll)}/{YIELD_UNIT}
               </span>
             )}
             {productId && row.quantityPerRoll > 0 && (
-              <span>{formatNumber(row.quantityPerRoll, 0)}/{YIELD_UNIT}</span>
+              <span>
+                ใช้ {formatNumber(row.quantityPerRoll, 0)} {unit}
+              </span>
             )}
           </div>
         </div>
-      </div>
-      <div className="ingredient-mobile-side">
-        <span
-          className="text-sm font-medium tabular-nums leading-none"
-          style={{ color: row.low ? "var(--danger)" : "var(--text-primary)" }}
-        >
-          {formatNumber(row.ingredient.current_stock, 0)}
-        </span>
-        <span className="mt-0.5 text-[10px]" style={{ color: "var(--text-muted)" }}>
-          {unit}
-        </span>
-        <MobileYieldText row={row} />
-      </div>
+        <div className="ingredient-mobile-side">
+          <span
+            className="text-sm font-semibold tabular-nums leading-none"
+            style={{ color: row.low ? "var(--danger)" : "var(--text-primary)" }}
+          >
+            {formatNumber(row.ingredient.current_stock, 0)}
+          </span>
+          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
+            {unit}
+          </span>
+          <MobileYieldText row={row} />
+        </div>
       </button>
     </div>
   );
