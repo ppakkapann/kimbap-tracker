@@ -6214,16 +6214,18 @@ a.app-stat-link:focus-visible {
 }
 
 .stock-history-grid {
-  --history-visible-rows: 10;
+  --history-visible-rows: 15;
   --history-row-h: 2.9375rem;
+  --history-body-min-h: calc(var(--history-visible-rows) * var(--history-row-h));
+  --history-panel-chrome-h: 19rem;
   align-items: stretch;
 }
 
 .stock-history-grid .history-panel-card {
   display: flex;
   flex-direction: column;
-  height: 100%;
-  min-height: clamp(40rem, 75vh, 54rem);
+  height: auto;
+  min-height: calc(var(--history-body-min-h) + var(--history-panel-chrome-h));
   max-height: none;
 }
 
@@ -6261,16 +6263,29 @@ a.app-stat-link:focus-visible {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+.stock-history-grid .history-table-scroll-x {
+  flex: 1 1 0;
+  min-height: var(--history-body-min-h);
+  overflow: hidden;
 }
 
 .stock-history-grid .history-table-body-scroll {
   flex: 1 1 0;
   min-height: 0;
-  height: auto;
+  overflow-y: auto;
+  overflow-x: auto;
 }
 
 .stock-history-grid .history-table-footer {
-  min-height: 2.75rem;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  background: var(--bg-elevated);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -1px 0 var(--border-subtle);
 }
 
 @media (min-width: 640px) {
@@ -6572,7 +6587,8 @@ a.app-stat-link:focus-visible {
   gap: 0.375rem 0.75rem;
   padding: 0.625rem 1rem;
   border-top: 1px solid var(--border);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--bg-elevated);
+  flex-shrink: 0;
 }
 
 .history-grid-list {
@@ -8694,7 +8710,10 @@ a.app-stat-link:focus-visible {
   /* Stock history — fixed panels, scroll inside each frame */
   .stock-history-grid {
     --history-mobile-row-h: 4.75rem;
-    --stock-history-panel-h: min(70dvh, 36rem);
+    --stock-history-panel-h: min(
+      88dvh,
+      calc(var(--history-body-min-h) + 11rem)
+    );
     align-items: stretch;
     gap: 1.25rem;
     padding-bottom: calc(6.5rem + env(safe-area-inset-bottom, 0px));
@@ -8770,7 +8789,10 @@ a.app-stat-link:focus-visible {
   .stock-history-grid .history-table-footer {
     flex-shrink: 0;
     position: relative;
-    z-index: 1;
+    z-index: 2;
+    background: var(--bg-elevated);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -1px 0 var(--border-subtle);
   }
 
   /* Mobile feed — hide desktop table rows */
