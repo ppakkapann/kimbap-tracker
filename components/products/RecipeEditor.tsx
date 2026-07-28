@@ -3,20 +3,20 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveRecipeItems } from "@/lib/actions";
-import { formatCurrency, formatNumber, isLowStock } from "@/lib/calculations";
-import { NumberInput } from "@/components/ui";
-import { nativeSelectStyle } from "@/components/ui/native-controls";
-import { BomMobileRow, BomMobileTotal } from "@/components/products/BomMobileRow";
+import { formatNumber, isLowStock } from "@/lib/calculations";
+import { BomDesktopGrid } from "@/components/products/BomDesktopGrid";
+import { BomMobileRow, BomMobileSummary } from "@/components/products/BomMobileRow";
+import { BomRowEditModal } from "@/components/products/BomRowEditModal";
 import { CostSortLabel } from "@/components/products/CostSortLabel";
 import { unitCostFromPriceRef } from "@/lib/unit-cost";
-import { groupIngredientsForSelect } from "@/lib/ingredient-categories";
+import {
+  getDistinctCategories,
+  groupIngredientsForSelect,
+} from "@/lib/ingredient-categories";
 import {
   maxRollsFromBomRows,
   rollsPossibleForBomRow,
-  rollsYieldColor,
-  stockDisplayColor,
 } from "@/lib/recipe-yield";
-import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
 import {
   sortIndicesByCost,
   type RecipeCostSort,
@@ -71,9 +71,15 @@ export function RecipeEditor({
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
   const [costSort, setCostSort] = useState<RecipeCostSort>("desc");
+  const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
   const ingredientGroups = useMemo(
     () => groupIngredientsForSelect(ingredients),
+    [ingredients]
+  );
+
+  const allCategories = useMemo(
+    () => getDistinctCategories(ingredients),
     [ingredients]
   );
 
@@ -122,24 +128,32 @@ export function RecipeEditor({
     [rows, ingredients, existingItems]
   );
 
+  const editingEntry =
+    editingIndex !== null ? sortedRowEntries.find((entry) => entry.index === editingIndex) : null;
+
   function addRow(category?: string) {
     const group = category
       ? ingredientGroups.find((item) => item.category === category)
       : ingredientGroups[0];
+    const nextIndex = rows.length;
     setRows([
       ...rows,
       emptyRecipeRow(group?.items[0]?.id ?? ingredients[0]?.id ?? ""),
     ]);
+    setEditingIndex(nextIndex);
   }
 
   function removeRow(index: number) {
     setRows(rows.filter((_, i) => i !== index));
+    setEditingIndex(null);
   }
 
-  function updateRow(index: number, field: keyof RecipeRow, value: string) {
-    const updated = [...rows];
-    updated[index] = { ...updated[index], [field]: value };
-    setRows(updated);
+  function saveEditedRow(next: RecipeRow) {
+    if (editingIndex === null) return;
+    setRows((current) =>
+      current.map((row, index) => (index === editingIndex ? next : row))
+    );
+    setEditingIndex(null);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -180,148 +194,13 @@ export function RecipeEditor({
     );
   }
 
-  const emptyState = (
-    <p className="bom-empty">ยังไม่มีรายการ — กด + ด้านล่างเพื่อเพิ่ม</p>
-  );
-
-  const desktopTable = (
-    <table className="bom-table">
-      <thead>
-        <tr>
-          <th>วัตถุดิบ</th>
-          <th>ใช้/{YIELD_UNIT}</th>
-          <th className="bom-cell-stock">สต็อก</th>
-          <th className="bom-cell-cost">
-            {rows.length > 0 ? (
-              <CostSortLabel
-                sort={costSort}
-                onToggle={() =>
-                  setCostSort((current) => (current === "desc" ? "asc" : "desc"))
-                }
-                className="cost-sort-label--th"
-              />
-            ) : (
-              "ต้นทุน"
-            )}
-          </th>
-          <th className="bom-cell-yield">ทำได้อีก</th>
-          <th aria-label="ลบ" />
-        </tr>
-      </thead>
-      <tbody>
-        {sortedRowEntries.map(({ row, index, cost, rollsPossible }) => {
-          const ing = ingredients.find((item) => item.id === row.ingredient_id);
-          const unit = ing ? getIngredientUnitLabel(ing) : "";
-          const low = ing ? isLowStock(ing) : false;
-
-          return (
-            <tr key={`${row.ingredient_id}-${index}`}>
-              <td className="bom-cell-ingredient">
-                <select
-                  value={row.ingredient_id}
-                  onChange={(e) =>
-                    updateRow(index, "ingredient_id", e.target.value)
-                  }
-                  className="bom-select app-input"
-                  style={nativeSelectStyle}
-                  aria-label={ing?.name ?? "วัตถุดิบ"}
-                >
-                  {ingredientGroups.map((optgroup) => (
-                    <optgroup key={optgroup.category} label={optgroup.label}>
-                      {optgroup.items.map((item) => (
-                        <option key={item.id} value={item.id}>
-                          {item.name}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                </select>
-              </td>
-              <td className="bom-cell-qty">
-                <NumberInput
-                  value={row.quantity_per_roll}
-                  onChange={(e) =>
-                    updateRow(index, "quantity_per_roll", e.target.value)
-                  }
-                  className="bom-qty-input app-input-inline"
-                  aria-label={`${unit} ต่อ${YIELD_UNIT}`}
-                  allowDecimals
-                  decimals={2}
-                  plain
-                />
-                <span className="bom-qty-unit">{unit}</span>
-              </td>
-              <td className="bom-cell-stock">
-                {ing ? (
-                  <span
-                    className="tabular-nums text-sm"
-                    style={{ color: stockDisplayColor(ing) }}
-                  >
-                    <StockQuantityDisplay
-                      ingredient={ing}
-                      quantity={ing.current_stock}
-                    />
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td className="bom-cell-cost">
-                {cost > 0 ? formatCurrency(cost) : "—"}
-              </td>
-              <td className="bom-cell-yield">
-                {rollsPossible !== null ? (
-                  <span
-                    className="tabular-nums"
-                    style={{ color: rollsYieldColor(rollsPossible, low) }}
-                  >
-                    {formatNumber(rollsPossible, 0)} {YIELD_UNIT}
-                  </span>
-                ) : (
-                  "—"
-                )}
-              </td>
-              <td className="bom-cell-action">
-                <button
-                  type="button"
-                  onClick={() => removeRow(index)}
-                  className="bom-remove"
-                  aria-label="ลบ"
-                >
-                  ✕
-                </button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-      {costBreakdown.total > 0 && (
-        <tfoot>
-          <tr className="bom-foot-total">
-            <td colSpan={3} className="bom-foot-label">
-              รวม/{YIELD_UNIT}
-            </td>
-            <td className="bom-cell-cost bom-foot-total-value">
-              {formatCurrency(costBreakdown.total)}
-            </td>
-            <td className="bom-cell-yield bom-foot-yield-value">
-              {maxRolls > 0 ? (
-                <span style={{ color: "var(--success)" }}>
-                  {formatNumber(maxRolls, 0)} {YIELD_UNIT}
-                </span>
-              ) : (
-                "—"
-              )}
-            </td>
-            <td />
-          </tr>
-        </tfoot>
-      )}
-    </table>
-  );
-
   const mobileFeed = (
     <div className="bom-mobile-feed">
+      <BomMobileSummary
+        total={costBreakdown.total}
+        maxRolls={maxRolls}
+        itemCount={rows.length}
+      />
       {sortedRowEntries.map(({ row, index, cost, rollsPossible }) => {
         const ing = ingredients.find((item) => item.id === row.ingredient_id);
         const unit = ing ? getIngredientUnitLabel(ing) : "";
@@ -337,14 +216,11 @@ export function RecipeEditor({
             lowStock={low}
             ingredient={ing}
             unit={unit}
-            ingredientGroups={ingredientGroups}
-            ingredientName={ing?.name ?? ""}
-            onUpdate={updateRow}
-            onRemove={removeRow}
+            allCategories={allCategories}
+            onEdit={setEditingIndex}
           />
         );
       })}
-      <BomMobileTotal total={costBreakdown.total} maxRolls={maxRolls} />
     </div>
   );
 
@@ -381,10 +257,25 @@ export function RecipeEditor({
         <div className="product-recipe-table-shell">
           <div className="bom-sheet">
             {rows.length === 0 ? (
-              emptyState
+              <p className="bom-empty">ยังไม่มีรายการ — กด + ด้านล่างเพื่อเพิ่ม</p>
             ) : (
               <>
-                <div className="bom-table-wrap hidden md:block">{desktopTable}</div>
+                <div className="hidden md:block max-md:!hidden bom-grid-shell">
+                  <BomDesktopGrid
+                    entries={sortedRowEntries}
+                    ingredients={ingredients}
+                    allCategories={allCategories}
+                    costSort={costSort}
+                    onCostSortToggle={() =>
+                      setCostSort((current) =>
+                        current === "desc" ? "asc" : "desc"
+                      )
+                    }
+                    onEditRow={setEditingIndex}
+                    total={costBreakdown.total}
+                    maxRolls={maxRolls}
+                  />
+                </div>
                 <div className="md:hidden">{mobileFeed}</div>
               </>
             )}
@@ -420,6 +311,19 @@ export function RecipeEditor({
           </div>
         </div>
       </form>
+
+      {editingEntry ? (
+        <BomRowEditModal
+          open
+          row={editingEntry.row}
+          ingredients={ingredients}
+          existingItems={existingItems}
+          ingredientGroups={ingredientGroups}
+          onClose={() => setEditingIndex(null)}
+          onSave={saveEditedRow}
+          onRemove={() => removeRow(editingEntry.index)}
+        />
+      ) : null}
     </div>
   );
 }
