@@ -6,6 +6,7 @@ import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   deleteIngredient,
+  saveIngredientMenuRecipeUsages,
   saveIngredientRecipeRows,
   updateIngredient,
 } from "@/lib/actions";
@@ -26,7 +27,7 @@ import {
   mergeIngredientCategorySuggestions,
   rememberIngredientCategory,
 } from "@/lib/ingredient-category-presets";
-import type { Ingredient, IngredientUnit } from "@/lib/types";
+import type { Ingredient, IngredientUnit, Product } from "@/lib/types";
 import { UNIT_LABELS } from "@/lib/types";
 import { yieldPercentFromQuantities } from "@/lib/purchase-yield";
 import { PREP_ESTIMATE_PRESETS } from "@/lib/purchase-prep";
@@ -38,6 +39,12 @@ import {
 } from "@/lib/unit-conversion";
 import { SegmentToggle } from "@/components/ui";
 import { UnitPicker } from "@/components/ingredients/UnitPicker";
+
+interface MenuUsageEdit {
+  productId: string;
+  productName: string;
+  quantityPerRoll: string;
+}
 
 type RecipeInputMode = "perRoll" | "fromPurchase";
 
@@ -63,6 +70,7 @@ export function IngredientEditModal({
   productId,
   productName,
   recipeMenus = [],
+  products = [],
   onClose,
   onDeleted,
 }: {
@@ -71,6 +79,7 @@ export function IngredientEditModal({
   productId: string;
   productName?: string;
   recipeMenus?: IngredientRecipeMenuLink[];
+  products?: Product[];
   onClose: () => void;
   onDeleted?: () => void;
 }) {
@@ -117,6 +126,19 @@ export function IngredientEditModal({
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState("");
+  const [menuUsages, setMenuUsages] = useState<MenuUsageEdit[]>([]);
+  const [addProductId, setAddProductId] = useState("");
+
+  useEffect(() => {
+    setMenuUsages(
+      recipeMenus.map((menu) => ({
+        productId: menu.productId,
+        productName: menu.productName,
+        quantityPerRoll: String(menu.quantityPerRoll),
+      }))
+    );
+    setAddProductId("");
+  }, [ingredient.id, recipeMenus]);
 
   useEffect(() => {
     setCategorySuggestions(
@@ -144,6 +166,13 @@ export function IngredientEditModal({
       ]),
     [category, categoryOptions]
   );
+
+  const availableProducts = useMemo(() => {
+    const used = new Set(menuUsages.map((usage) => usage.productId));
+    return products
+      .filter((product) => product.is_active && !used.has(product.id))
+      .sort((a, b) => a.name.localeCompare(b.name, "th"));
+  }, [menuUsages, products]);
 
   const displayUnit = unitLabel.trim() || UNIT_LABELS[normalizeStorageUnit(unit)];
 
@@ -224,6 +253,34 @@ export function IngredientEditModal({
     );
   }
 
+  function updateMenuUsage(productId: string, quantityPerRoll: string) {
+    setMenuUsages((prev) =>
+      prev.map((usage) =>
+        usage.productId === productId ? { ...usage, quantityPerRoll } : usage
+      )
+    );
+  }
+
+  function removeMenuUsage(productId: string) {
+    setMenuUsages((prev) =>
+      prev.filter((usage) => usage.productId !== productId)
+    );
+  }
+
+  function addMenuUsage() {
+    const product = products.find((item) => item.id === addProductId);
+    if (!product) return;
+    setMenuUsages((prev) => [
+      ...prev,
+      {
+        productId: product.id,
+        productName: product.name,
+        quantityPerRoll: "",
+      },
+    ]);
+    setAddProductId("");
+  }
+
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
 
@@ -266,22 +323,73 @@ export function IngredientEditModal({
       return;
     }
 
-    const result = await saveIngredientRecipeRows(productId, [
-      {
-        id: ingredient.id,
-        name: name.trim(),
-        unit,
-        currentStock,
-        purchaseQuantity: 0,
-        purchaseTotalPrice: 0,
-        quantityPerRoll: qtyPerRoll,
-      },
-    ]);
+    if (!productId) {
+      for (const usage of menuUsages) {
+        const qty = parseFloat(usage.quantityPerRoll);
+        if (!(qty > 0)) {
+          setError(`กรอกปริมาณใช้/ม้วน สำหรับ "${usage.productName}"`);
+          setLoading(false);
+          return;
+        }
+      }
 
-    if (result.error) {
-      setError(result.error);
-      setLoading(false);
-      return;
+      const stockResult = await saveIngredientRecipeRows("", [
+        {
+          id: ingredient.id,
+          name: name.trim(),
+          unit,
+          currentStock,
+          purchaseQuantity: 0,
+          purchaseTotalPrice: 0,
+          quantityPerRoll: 0,
+        },
+      ]);
+
+      if (stockResult.error) {
+        setError(stockResult.error);
+        setLoading(false);
+        return;
+      }
+
+      const initialProductIds = new Set(recipeMenus.map((menu) => menu.productId));
+      const nextProductIds = new Set(menuUsages.map((usage) => usage.productId));
+      const removeProductIds = [...initialProductIds].filter(
+        (id) => !nextProductIds.has(id)
+      );
+      const upserts = menuUsages.map((usage) => ({
+        product_id: usage.productId,
+        quantity_per_roll: parseFloat(usage.quantityPerRoll),
+      }));
+
+      const recipeResult = await saveIngredientMenuRecipeUsages(
+        ingredient.id,
+        upserts,
+        removeProductIds
+      );
+
+      if (recipeResult.error) {
+        setError(recipeResult.error);
+        setLoading(false);
+        return;
+      }
+    } else {
+      const result = await saveIngredientRecipeRows(productId, [
+        {
+          id: ingredient.id,
+          name: name.trim(),
+          unit,
+          currentStock,
+          purchaseQuantity: 0,
+          purchaseTotalPrice: 0,
+          quantityPerRoll: qtyPerRoll,
+        },
+      ]);
+
+      if (result.error) {
+        setError(result.error);
+        setLoading(false);
+        return;
+      }
     }
 
     rememberIngredientCategory(normalizedCategory);
@@ -626,30 +734,82 @@ export function IngredientEditModal({
             {!productId ? (
               <section className="ingredient-edit-section ingredient-edit-section--panel">
                 <h3 className="ingredient-edit-section-title">ใช้ในสูตรเมนู</h3>
-                {recipeMenus.length === 0 ? (
+                {menuUsages.length === 0 ? (
                   <p className="ingredient-edit-hint">
-                    ยังไม่ถูกใช้ในเมนูใด — แก้สูตรได้ที่หน้าเมนู
+                    ยังไม่ถูกใช้ในเมนูใด — เพิ่มเมนูด้านล่าง
                   </p>
                 ) : (
                   <ul className="ingredient-edit-recipe-menu-list">
-                    {recipeMenus.map((menu) => (
-                      <li key={menu.productId}>
+                    {menuUsages.map((usage) => (
+                      <li
+                        key={usage.productId}
+                        className="ingredient-edit-recipe-menu-row"
+                      >
                         <Link
-                          href={`/products/${menu.productId}`}
-                          className="ingredient-edit-recipe-menu-link"
+                          href={`/products/${usage.productId}`}
+                          className="ingredient-edit-recipe-menu-name"
                           onClick={onClose}
                         >
-                          <span className="ingredient-edit-recipe-menu-name">
-                            {menu.productName}
-                          </span>
-                          <span className="ingredient-edit-recipe-menu-qty tabular-nums">
-                            {formatNumber(menu.quantityPerRoll, 2)} / {YIELD_UNIT}
-                          </span>
+                          {usage.productName}
                         </Link>
+                        <div className="ingredient-edit-recipe-menu-input">
+                          <NumberInput
+                            className="min-w-0 flex-1"
+                            value={usage.quantityPerRoll}
+                            placeholder="75"
+                            onChange={(event) =>
+                              updateMenuUsage(
+                                usage.productId,
+                                event.target.value
+                              )
+                            }
+                            allowDecimals
+                            decimals={2}
+                          />
+                          <span className="ingredient-edit-unit-suffix">
+                            {displayUnit}/{YIELD_UNIT}
+                          </span>
+                        </div>
+                        <button
+                          type="button"
+                          className="ingredient-edit-recipe-menu-remove"
+                          aria-label={`เอา ${usage.productName} ออกจากสูตร`}
+                          onClick={() => removeMenuUsage(usage.productId)}
+                        >
+                          ×
+                        </button>
                       </li>
                     ))}
                   </ul>
                 )}
+                {availableProducts.length > 0 ? (
+                  <div className="ingredient-edit-recipe-menu-add">
+                    <select
+                      className="app-input ingredient-edit-recipe-menu-select"
+                      value={addProductId}
+                      onChange={(event) => setAddProductId(event.target.value)}
+                    >
+                      <option value="">+ เพิ่มในเมนู</option>
+                      {availableProducts.map((product) => (
+                        <option key={product.id} value={product.id}>
+                          {product.name}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      className="app-btn app-btn-secondary ingredient-edit-recipe-menu-add-btn"
+                      disabled={!addProductId}
+                      onClick={addMenuUsage}
+                    >
+                      เพิ่ม
+                    </button>
+                  </div>
+                ) : menuUsages.length > 0 ? (
+                  <p className="ingredient-edit-hint">
+                    ใช้ในเมนูที่เปิดอยู่ครบแล้ว
+                  </p>
+                ) : null}
               </section>
             ) : null}
           </div>

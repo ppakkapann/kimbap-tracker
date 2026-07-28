@@ -895,6 +895,38 @@ export function demoSaveIngredientRecipeRows(
   return { error: null };
 }
 
+export function demoSaveIngredientMenuRecipeUsages(
+  ingredientId: string,
+  upserts: { product_id: string; quantity_per_roll: number }[],
+  removeProductIds: string[]
+) {
+  const s = store();
+
+  for (const productId of removeProductIds) {
+    s.recipeItems = s.recipeItems.filter(
+      (item) =>
+        !(item.product_id === productId && item.ingredient_id === ingredientId)
+    );
+  }
+
+  for (const { product_id, quantity_per_roll } of upserts) {
+    s.recipeItems = s.recipeItems.filter(
+      (item) =>
+        !(item.product_id === product_id && item.ingredient_id === ingredientId)
+    );
+    s.recipeItems.push({
+      id: newId("r"),
+      product_id,
+      ingredient_id: ingredientId,
+      quantity_per_roll,
+      batch_quantity: quantity_per_roll,
+      batch_yield: 1,
+    });
+  }
+
+  return { error: null };
+}
+
 export function demoRecordSale(data: {
   product_id: string;
   quantity: number;

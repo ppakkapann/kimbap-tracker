@@ -33,6 +33,7 @@ import {
   demoRecordSaleBatch,
   demoReorderIngredients,
   demoSaveIngredientRecipeRows,
+  demoSaveIngredientMenuRecipeUsages,
   demoSaveRecipeItems,
   demoUpdateIngredient,
   demoUpdateProduct,
@@ -455,6 +456,57 @@ export async function saveIngredientRecipeRows(
     revalidatePath("/");
     return { error: null };
   }, () => demoSaveIngredientRecipeRows(productId, rows));
+}
+
+export async function saveIngredientMenuRecipeUsages(
+  ingredientId: string,
+  upserts: { product_id: string; quantity_per_roll: number }[],
+  removeProductIds: string[]
+) {
+  return demoGuard(async () => {
+    const { supabase } = await requireAuth();
+
+    for (const productId of removeProductIds) {
+      const { error } = await supabase
+        .from("recipe_items")
+        .delete()
+        .eq("product_id", productId)
+        .eq("ingredient_id", ingredientId);
+      if (error) return { error: error.message };
+    }
+
+    for (const { product_id, quantity_per_roll } of upserts) {
+      const { error } = await supabase.from("recipe_items").upsert(
+        {
+          product_id,
+          ingredient_id: ingredientId,
+          quantity_per_roll,
+          batch_quantity: quantity_per_roll,
+          batch_yield: 1,
+        },
+        { onConflict: "product_id,ingredient_id" }
+      );
+      if (error) return { error: error.message };
+    }
+
+    revalidatePath("/products");
+    for (const { product_id } of upserts) {
+      revalidatePath(`/products/${product_id}`);
+    }
+    for (const productId of removeProductIds) {
+      revalidatePath(`/products/${productId}`);
+    }
+    revalidatePath("/ingredients");
+    revalidatePath("/stock");
+    revalidatePath("/");
+    return { error: null };
+  }, () =>
+    demoSaveIngredientMenuRecipeUsages(
+      ingredientId,
+      upserts,
+      removeProductIds
+    )
+  );
 }
 
 export async function recordPurchase(data: {

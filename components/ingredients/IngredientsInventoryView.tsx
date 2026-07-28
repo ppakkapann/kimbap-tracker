@@ -402,6 +402,7 @@ export function IngredientsInventoryView({
           quantityPerRoll={0}
           productId=""
           recipeMenus={editingRow.recipeMenus}
+          products={products}
           onClose={() => setEditingId(null)}
           onDeleted={handleDeleted}
         />
