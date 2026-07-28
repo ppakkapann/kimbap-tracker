@@ -22,6 +22,12 @@ import {
   HistoryTableMonthRow,
   HistoryTableShell,
 } from "@/components/stock/HistoryPanelParts";
+import {
+  HistoryMobileMonthRow,
+  HistoryMobileMovementRow,
+  HistoryMobilePurchaseConfirm,
+  HistoryMobilePurchaseRow,
+} from "@/components/stock/HistoryMobileRows";
 
 const movementLabels: Record<StockMovementType, string> = {
   purchase: "ซื้อเข้า",
@@ -222,15 +228,20 @@ export function StockMovementHistory({
             <p>ไม่มีรายการในช่วงนี้</p>
           </div>
         ) : (
-          <div className="ingredient-grid-list history-grid-list history-grid-list--movement">
+          <div className="ingredient-grid-list history-grid-list history-grid-list--movement history-mobile-feed">
             {tableRows.map((row) => {
               if (row.kind === "month") {
                 return (
-                  <HistoryTableMonthRow
-                    key={`month-${row.monthKey}`}
-                    monthKey={row.monthKey}
-                    meta={row.meta}
-                  />
+                  <Fragment key={`month-${row.monthKey}`}>
+                    <HistoryTableMonthRow
+                      monthKey={row.monthKey}
+                      meta={row.meta}
+                    />
+                    <HistoryMobileMonthRow
+                      monthKey={row.monthKey}
+                      meta={row.meta}
+                    />
+                  </Fragment>
                 );
               }
 
@@ -252,57 +263,65 @@ export function StockMovementHistory({
               ].filter(Boolean);
 
               return (
-                <div key={m.id} className="ingredient-grid-row history-grid-row">
-                  <div className="ingredient-grid-cell history-grid-cell history-grid-cell--date">
-                    <span className="cell-numeric cell-muted text-sm tabular-nums">
-                      {formatHistoryDate(m.created_at)}
-                    </span>
-                  </div>
-                  <div className="ingredient-grid-cell history-grid-cell history-grid-cell--type">
-                    <span className={`app-badge ${movementBadge[m.type]}`}>
-                      {movementLabels[m.type]}
-                    </span>
-                  </div>
-                  <div className="ingredient-grid-cell history-grid-cell history-grid-cell--name">
-                    <span className="truncate text-sm font-medium">
-                      {m.ingredient?.name || "วัตถุดิบ"}
-                    </span>
-                  </div>
-                  <div className="ingredient-grid-cell history-grid-cell history-grid-cell--detail">
-                    <span className="cell-muted truncate text-sm">
-                      {detailParts.join(" · ")}
-                    </span>
-                  </div>
-                  <div className="ingredient-grid-cell history-grid-cell history-grid-cell--qty">
-                    {m.ingredient ? (
-                      <span
-                        className="cell-numeric text-sm tabular-nums"
-                        style={{
-                          color:
-                            m.quantity >= 0 ? "var(--success)" : "var(--danger)",
-                        }}
-                      >
-                        <StockQuantityDisplay
-                          ingredient={m.ingredient}
-                          quantity={m.quantity}
-                          decimals={1}
-                          signed
-                        />
+                <Fragment key={m.id}>
+                  <div className="ingredient-grid-row history-grid-row history-desktop-row max-sm:hidden">
+                    <div className="ingredient-grid-cell history-grid-cell history-grid-cell--date">
+                      <span className="cell-numeric cell-muted text-sm tabular-nums">
+                        {formatHistoryDate(m.created_at)}
                       </span>
-                    ) : (
-                      <span
-                        className="cell-numeric text-sm tabular-nums"
-                        style={{
-                          color:
-                            m.quantity >= 0 ? "var(--success)" : "var(--danger)",
-                        }}
-                      >
-                        {m.quantity >= 0 ? "+" : ""}
-                        {formatNumber(m.quantity, 1)}
+                    </div>
+                    <div className="ingredient-grid-cell history-grid-cell history-grid-cell--type">
+                      <span className={`app-badge ${movementBadge[m.type]}`}>
+                        {movementLabels[m.type]}
                       </span>
-                    )}
+                    </div>
+                    <div className="ingredient-grid-cell history-grid-cell history-grid-cell--name">
+                      <span className="truncate text-sm font-medium">
+                        {m.ingredient?.name || "วัตถุดิบ"}
+                      </span>
+                    </div>
+                    <div className="ingredient-grid-cell history-grid-cell history-grid-cell--detail">
+                      <span className="cell-muted truncate text-sm">
+                        {detailParts.join(" · ")}
+                      </span>
+                    </div>
+                    <div className="ingredient-grid-cell history-grid-cell history-grid-cell--qty">
+                      {m.ingredient ? (
+                        <span
+                          className="cell-numeric text-sm tabular-nums"
+                          style={{
+                            color:
+                              m.quantity >= 0 ? "var(--success)" : "var(--danger)",
+                          }}
+                        >
+                          <StockQuantityDisplay
+                            ingredient={m.ingredient}
+                            quantity={m.quantity}
+                            decimals={1}
+                            signed
+                          />
+                        </span>
+                      ) : (
+                        <span
+                          className="cell-numeric text-sm tabular-nums"
+                          style={{
+                            color:
+                              m.quantity >= 0 ? "var(--success)" : "var(--danger)",
+                          }}
+                        >
+                          {m.quantity >= 0 ? "+" : ""}
+                          {formatNumber(m.quantity, 1)}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
+                  <HistoryMobileMovementRow
+                    movement={m}
+                    typeLabel={movementLabels[m.type]}
+                    badgeClass={movementBadge[m.type]}
+                    detail={detailParts.join(" · ")}
+                  />
+                </Fragment>
               );
             })}
           </div>
@@ -490,15 +509,20 @@ export function PurchaseHistoryTable({
             <p>ไม่มีรายการในช่วงนี้</p>
           </div>
         ) : (
-          <div className="ingredient-grid-list history-grid-list history-grid-list--purchase">
+          <div className="ingredient-grid-list history-grid-list history-grid-list--purchase history-mobile-feed">
             {tableRows.map((row) => {
               if (row.kind === "month") {
                 return (
-                  <HistoryTableMonthRow
-                    key={`month-${row.monthKey}`}
-                    monthKey={row.monthKey}
-                    meta={row.meta}
-                  />
+                  <Fragment key={`month-${row.monthKey}`}>
+                    <HistoryTableMonthRow
+                      monthKey={row.monthKey}
+                      meta={row.meta}
+                    />
+                    <HistoryMobileMonthRow
+                      monthKey={row.monthKey}
+                      meta={row.meta}
+                    />
+                  </Fragment>
                 );
               }
 
@@ -510,13 +534,14 @@ export function PurchaseHistoryTable({
               const detailParts = purchaseDetailParts(p, ing, {
                 formatDate: formatHistoryDate,
               });
+              const detailText = detailParts.join(" · ");
 
               return (
                 <Fragment key={p.id}>
                   <div
                     role="button"
                     tabIndex={0}
-                    className={`ingredient-grid-row history-grid-row history-grid-row--interactive${isPending ? " history-grid-row--confirming" : ""}`}
+                    className={`ingredient-grid-row history-grid-row history-grid-row--interactive history-desktop-row max-sm:hidden${isPending ? " history-grid-row--confirming" : ""}`}
                     onClick={() => {
                       if (isPending || isDeleting || !ing) return;
                       setError("");
@@ -543,7 +568,7 @@ export function PurchaseHistoryTable({
                         </p>
                         {detailParts.length > 0 && (
                           <p className="purchase-history-detail cell-muted mt-0.5 text-xs">
-                            {detailParts.join(" · ")}
+                            {detailText}
                           </p>
                         )}
                       </div>
@@ -602,36 +627,63 @@ export function PurchaseHistoryTable({
                     </div>
                   </div>
 
+                  <HistoryMobilePurchaseRow
+                    purchase={p}
+                    ingredient={ing}
+                    unit={unit}
+                    detail={detailText}
+                    isPending={isPending}
+                    isDeleting={isDeleting}
+                    onOpen={() => {
+                      if (isPending || isDeleting || !ing) return;
+                      setError("");
+                      setEditingPurchase(p);
+                    }}
+                    onDelete={() => {
+                      setError("");
+                      setPendingId(p.id);
+                    }}
+                  />
+
                   {isPending && (
-                    <div className="history-grid-confirm-row">
-                      <p
-                        className="text-xs leading-relaxed"
-                        style={{ color: "var(--text-secondary)" }}
-                      >
-                        ลบรายการนี้? สต็อกจะลด{" "}
-                        <strong className="tabular-nums">
-                          {formatNumber(p.quantity, 0)} {unit}
-                        </strong>
-                      </p>
-                      <div className="history-grid-confirm-actions">
-                        <button
-                          type="button"
-                          className="app-btn app-btn-secondary app-btn-sm"
-                          disabled={isDeleting}
-                          onClick={() => setPendingId(null)}
+                    <>
+                      <div className="history-grid-confirm-row history-desktop-row max-sm:hidden">
+                        <p
+                          className="text-xs leading-relaxed"
+                          style={{ color: "var(--text-secondary)" }}
                         >
-                          ยกเลิก
-                        </button>
-                        <button
-                          type="button"
-                          className="app-btn app-btn-danger app-btn-sm"
-                          disabled={isDeleting}
-                          onClick={() => handleDelete(p.id)}
-                        >
-                          {isDeleting ? "กำลังลบ..." : "ลบ"}
-                        </button>
+                          ลบรายการนี้? สต็อกจะลด{" "}
+                          <strong className="tabular-nums">
+                            {formatNumber(p.quantity, 0)} {unit}
+                          </strong>
+                        </p>
+                        <div className="history-grid-confirm-actions">
+                          <button
+                            type="button"
+                            className="app-btn app-btn-secondary app-btn-sm"
+                            disabled={isDeleting}
+                            onClick={() => setPendingId(null)}
+                          >
+                            ยกเลิก
+                          </button>
+                          <button
+                            type="button"
+                            className="app-btn app-btn-danger app-btn-sm"
+                            disabled={isDeleting}
+                            onClick={() => handleDelete(p.id)}
+                          >
+                            {isDeleting ? "กำลังลบ..." : "ลบ"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                      <HistoryMobilePurchaseConfirm
+                        quantity={p.quantity}
+                        unit={unit}
+                        isDeleting={isDeleting}
+                        onCancel={() => setPendingId(null)}
+                        onConfirm={() => handleDelete(p.id)}
+                      />
+                    </>
                   )}
                 </Fragment>
               );

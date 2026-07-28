@@ -66,7 +66,7 @@ export function HistoryTableMonthRow({
   const monthLabel = format(monthDate, "MMMM yyyy", { locale: th });
 
   return (
-    <div className="history-grid-month-row">
+    <div className="history-grid-month-row max-sm:hidden">
       <span className="history-grid-month-label">{monthLabel}</span>
       <span className="history-grid-month-meta tabular-nums">{meta}</span>
     </div>

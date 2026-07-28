@@ -35,6 +35,8 @@ import type {
   RecipeItem,
 } from "@/lib/types";
 
+import { IngredientMobileTotalCard } from "@/components/ingredients/IngredientMobileCard";
+
 const IngredientSortableList = dynamic(
   () =>
     import("@/components/ingredients/IngredientSortableList").then(
@@ -224,19 +226,6 @@ export function IngredientsInventoryView({
     activeRows.length > 0
       ? Math.min(...activeRows.map((row) => row.rollsPossible ?? 0))
       : 0;
-
-  const rowsWithBottleneck = useMemo(
-    () =>
-      rows.map((row) => ({
-        ...row,
-        isBottleneck:
-          row.rollsPossible !== null &&
-          maxRolls > 0 &&
-          row.rollsPossible === maxRolls,
-      })),
-    [rows, maxRolls]
-  );
-
   const currentProduct = products.find((product) => product.id === productId);
 
   const editingRow = useMemo(() => {
@@ -317,44 +306,12 @@ export function IngredientsInventoryView({
 
   const footerMobile =
     productId && rows.length > 0 ? (
-      <div className="ingredient-mobile-row ingredient-mobile-row--total">
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-semibold" style={{ color: "var(--text-secondary)" }}>
-              รวม
-            </span>
-            {currentProduct ? (
-              <span className="truncate text-xs" style={{ color: "var(--text-muted)" }}>
-                · {currentProduct.name}
-              </span>
-            ) : null}
-          </div>
-          <div
-            className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs tabular-nums"
-            style={{ color: "var(--text-muted)" }}
-          >
-            <span>
-              {totalUnitCost > 0 ? formatCurrency(totalUnitCost) : "—"}/หน่วย
-            </span>
-            <span className="text-sm font-semibold" style={{ color: "var(--accent)" }}>
-              {formatCurrency(costPerRoll)}
-            </span>
-            <span>—/{YIELD_UNIT}</span>
-          </div>
-        </div>
-        <div className="ingredient-mobile-side">
-          <span className="cell-muted text-sm">—</span>
-          <span
-            className="text-sm font-medium tabular-nums leading-none"
-            style={{ color: "var(--success)" }}
-          >
-            {formatNumber(maxRolls, 0)}
-          </span>
-          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {YIELD_UNIT}
-          </span>
-        </div>
-      </div>
+      <IngredientMobileTotalCard
+        productName={currentProduct?.name}
+        totalUnitCost={totalUnitCost}
+        costPerRoll={costPerRoll}
+        maxRolls={maxRolls}
+      />
     ) : null;
 
   return (
@@ -519,7 +476,7 @@ export function IngredientsInventoryView({
           </div>
         ) : (
           <>
-            <div className="hidden md:block ingredient-grid-list">
+            <div className="hidden md:block ingredient-grid-list max-md:!hidden">
               <div className="ingredient-grid-head">
                 <div className="ingredient-grid-cell ingredient-grid-cell--name">
                   <span className="ingredient-head-grip-spacer" aria-hidden />
@@ -545,7 +502,7 @@ export function IngredientsInventoryView({
                 </span>
               </div>
               <IngredientSortableList
-                rows={rowsWithBottleneck}
+                rows={rows}
                 productId={productId}
                 canReorder={canReorder}
                 onReorder={handleReorderIds}
@@ -556,12 +513,9 @@ export function IngredientsInventoryView({
               />
             </div>
 
-            <div
-              className="ingredient-mobile-list divide-y md:hidden"
-              style={{ borderColor: "var(--border-subtle)" }}
-            >
+            <div className="ingredient-mobile-feed md:hidden">
               <IngredientSortableList
-                rows={rowsWithBottleneck}
+                rows={rows}
                 productId={productId}
                 canReorder={canReorder}
                 onReorder={handleReorderIds}

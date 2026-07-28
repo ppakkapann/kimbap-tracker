@@ -1,0 +1,207 @@
+"use client";
+
+import { ChevronRight } from "lucide-react";
+import type { ReactNode } from "react";
+import { formatCurrency, formatNumber } from "@/lib/calculations";
+import {
+  getCategoryBadgeStyle,
+  getIngredientCategoryLabel,
+} from "@/lib/ingredient-categories";
+import { getInventoryStockStatus } from "@/lib/stock-analysis";
+import type { Ingredient } from "@/lib/types";
+import { getIngredientUnitLabel } from "@/lib/types";
+import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
+import { YIELD_UNIT } from "@/lib/yield-unit";
+import type { IngredientRowData } from "@/components/ingredients/IngredientSortableList";
+
+function yieldTextColor(row: IngredientRowData): string | undefined {
+  if (row.low) return "var(--danger)";
+  if (row.rollsPossible !== null && row.rollsPossible < 10) {
+    return "var(--warning)";
+  }
+  return "var(--success)";
+}
+
+function LowStockDot({ low }: { low: boolean }) {
+  if (!low) return null;
+  return (
+    <span
+      className="inline-block h-1.5 w-1.5 shrink-0 rounded-full"
+      style={{ background: "var(--danger)" }}
+    />
+  );
+}
+
+function CategoryBadge({
+  ingredient,
+  allCategories,
+}: {
+  ingredient: Ingredient;
+  allCategories: string[];
+}) {
+  const label = getIngredientCategoryLabel(ingredient.category);
+  const style = getCategoryBadgeStyle(label, allCategories);
+  return (
+    <span className="ingredient-category-badge" style={style}>
+      {label}
+    </span>
+  );
+}
+
+function StockStatusBadge({ ingredient }: { ingredient: Ingredient }) {
+  if (ingredient.low_stock_alert <= 0) return null;
+
+  const status = getInventoryStockStatus(ingredient);
+  const label =
+    status === "out" ? "หมด" : status === "low" ? "ใกล้หมด" : "ปกติ";
+  const badgeClass =
+    status === "out"
+      ? "app-badge-danger"
+      : status === "low"
+        ? "app-badge-warning"
+        : "app-badge-success";
+
+  return <span className={`app-badge ${badgeClass}`}>{label}</span>;
+}
+
+export function IngredientMobileCard({
+  row,
+  productId,
+  onEdit,
+  allCategories,
+  grip,
+}: {
+  row: IngredientRowData;
+  productId: string;
+  onEdit: (id: string) => void;
+  allCategories: string[];
+  grip?: ReactNode;
+}) {
+  const { ingredient } = row;
+  const unit = getIngredientUnitLabel(ingredient);
+  const showYield = row.rollsPossible !== null && row.quantityPerRoll > 0;
+
+  return (
+    <article className="ingredient-mobile-card">
+      {grip ? <div className="ingredient-mobile-card-grip">{grip}</div> : null}
+      <button
+        type="button"
+        className="ingredient-mobile-card-hit"
+        onClick={() => onEdit(ingredient.id)}
+      >
+        <div className="ingredient-mobile-card-body">
+          <div className="ingredient-mobile-card-top">
+            <div className="ingredient-mobile-card-head">
+              <LowStockDot low={row.low} />
+              <p className="ingredient-mobile-card-title">{ingredient.name}</p>
+            </div>
+            <div
+              className="ingredient-mobile-card-stock tabular-nums"
+              style={{ color: row.low ? "var(--danger)" : "var(--text-primary)" }}
+            >
+              <StockQuantityDisplay
+                ingredient={ingredient}
+                quantity={ingredient.current_stock}
+              />
+            </div>
+          </div>
+
+          <div className="ingredient-mobile-card-tags">
+            <CategoryBadge ingredient={ingredient} allCategories={allCategories} />
+            <span className="ingredient-mobile-card-unit">{unit}</span>
+            <StockStatusBadge ingredient={ingredient} />
+          </div>
+
+          <div className="ingredient-mobile-card-meta">
+            <span>
+              {row.unitCost > 0 ? formatCurrency(row.unitCost) : "—"}/หน่วย
+            </span>
+            {row.costPerRoll > 0 ? (
+              <>
+                <span className="ingredient-mobile-card-dot" aria-hidden>
+                  ·
+                </span>
+                <span style={{ color: "var(--accent)" }}>
+                  {formatCurrency(row.costPerRoll)}/{YIELD_UNIT}
+                </span>
+              </>
+            ) : null}
+            {productId && row.quantityPerRoll > 0 ? (
+              <>
+                <span className="ingredient-mobile-card-dot" aria-hidden>
+                  ·
+                </span>
+                <span>
+                  ใช้ {formatNumber(row.quantityPerRoll, 0)} {unit}
+                </span>
+              </>
+            ) : null}
+            {showYield ? (
+              <>
+                <span className="ingredient-mobile-card-dot" aria-hidden>
+                  ·
+                </span>
+                <span
+                  className="tabular-nums"
+                  style={{ color: yieldTextColor(row) }}
+                >
+                  ทำได้ {formatNumber(row.rollsPossible ?? 0, 0)} {YIELD_UNIT}
+                </span>
+              </>
+            ) : null}
+          </div>
+        </div>
+        <ChevronRight
+          size={16}
+          strokeWidth={1.75}
+          className="ingredient-mobile-card-chevron"
+          aria-hidden
+        />
+      </button>
+    </article>
+  );
+}
+
+export function IngredientMobileTotalCard({
+  productName,
+  totalUnitCost,
+  costPerRoll,
+  maxRolls,
+}: {
+  productName?: string;
+  totalUnitCost: number;
+  costPerRoll: number;
+  maxRolls: number;
+}) {
+  return (
+    <article className="ingredient-mobile-card ingredient-mobile-card--total">
+      <div className="ingredient-mobile-card-body">
+        <div className="ingredient-mobile-card-top">
+          <div className="ingredient-mobile-card-head">
+            <p className="ingredient-mobile-card-title">รวม</p>
+            {productName ? (
+              <span className="ingredient-mobile-card-product">{productName}</span>
+            ) : null}
+          </div>
+          <div
+            className="ingredient-mobile-card-stock tabular-nums"
+            style={{ color: "var(--success)" }}
+          >
+            {formatNumber(maxRolls, 0)} {YIELD_UNIT}
+          </div>
+        </div>
+        <div className="ingredient-mobile-card-meta">
+          <span>
+            {totalUnitCost > 0 ? formatCurrency(totalUnitCost) : "—"}/หน่วย
+          </span>
+          <span className="ingredient-mobile-card-dot" aria-hidden>
+            ·
+          </span>
+          <span style={{ color: "var(--accent)" }}>
+            {formatCurrency(costPerRoll)}/{YIELD_UNIT}
+          </span>
+        </div>
+      </div>
+    </article>
+  );
+}

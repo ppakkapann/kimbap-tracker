@@ -6,6 +6,7 @@ import { saveRecipeItems } from "@/lib/actions";
 import { formatCurrency } from "@/lib/calculations";
 import { NumberInput } from "@/components/ui";
 import { nativeSelectStyle } from "@/components/ui/native-controls";
+import { BomMobileRow, BomMobileTotal } from "@/components/products/BomMobileRow";
 import { CostSortLabel } from "@/components/products/CostSortLabel";
 import { unitCostFromPriceRef } from "@/lib/unit-cost";
 import { groupIngredientsForSelect } from "@/lib/ingredient-categories";
@@ -151,6 +152,131 @@ export function RecipeEditor({
     );
   }
 
+  const emptyState = (
+    <p className="bom-empty">ยังไม่มีรายการ — กด + ด้านล่างเพื่อเพิ่ม</p>
+  );
+
+  const desktopTable = (
+    <table className="bom-table">
+      <thead>
+        <tr>
+          <th>วัตถุดิบ</th>
+          <th>ใช้/{YIELD_UNIT}</th>
+          <th className="bom-cell-cost">
+            {rows.length > 0 ? (
+              <CostSortLabel
+                sort={costSort}
+                onToggle={() =>
+                  setCostSort((current) => (current === "desc" ? "asc" : "desc"))
+                }
+                className="cost-sort-label--th"
+              />
+            ) : (
+              "ต้นทุน"
+            )}
+          </th>
+          <th aria-label="ลบ" />
+        </tr>
+      </thead>
+      <tbody>
+        {sortedRowEntries.map(({ row, index, cost }) => {
+          const ing = ingredients.find((item) => item.id === row.ingredient_id);
+          const unit = ing ? getIngredientUnitLabel(ing) : "";
+
+          return (
+            <tr key={`${row.ingredient_id}-${index}`}>
+              <td className="bom-cell-ingredient">
+                <select
+                  value={row.ingredient_id}
+                  onChange={(e) =>
+                    updateRow(index, "ingredient_id", e.target.value)
+                  }
+                  className="bom-select app-input"
+                  style={nativeSelectStyle}
+                  aria-label={ing?.name ?? "วัตถุดิบ"}
+                >
+                  {ingredientGroups.map((optgroup) => (
+                    <optgroup key={optgroup.category} label={optgroup.label}>
+                      {optgroup.items.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {item.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  ))}
+                </select>
+              </td>
+              <td className="bom-cell-qty">
+                <NumberInput
+                  value={row.quantity_per_roll}
+                  onChange={(e) =>
+                    updateRow(index, "quantity_per_roll", e.target.value)
+                  }
+                  className="bom-qty-input app-input-inline"
+                  aria-label={`${unit} ต่อ${YIELD_UNIT}`}
+                  allowDecimals
+                  decimals={2}
+                  plain
+                />
+                <span className="bom-qty-unit">{unit}</span>
+              </td>
+              <td className="bom-cell-cost">
+                {cost > 0 ? formatCurrency(cost) : "—"}
+              </td>
+              <td className="bom-cell-action">
+                <button
+                  type="button"
+                  onClick={() => removeRow(index)}
+                  className="bom-remove"
+                  aria-label="ลบ"
+                >
+                  ✕
+                </button>
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+      {costBreakdown.total > 0 && (
+        <tfoot>
+          <tr className="bom-foot-total">
+            <td colSpan={2} className="bom-foot-label">
+              รวม/{YIELD_UNIT}
+            </td>
+            <td className="bom-cell-cost bom-foot-total-value">
+              {formatCurrency(costBreakdown.total)}
+            </td>
+            <td />
+          </tr>
+        </tfoot>
+      )}
+    </table>
+  );
+
+  const mobileFeed = (
+    <div className="bom-mobile-feed">
+      {sortedRowEntries.map(({ row, index, cost }) => {
+        const ing = ingredients.find((item) => item.id === row.ingredient_id);
+        const unit = ing ? getIngredientUnitLabel(ing) : "";
+
+        return (
+          <BomMobileRow
+            key={`${row.ingredient_id}-${index}`}
+            row={row}
+            index={index}
+            cost={cost}
+            unit={unit}
+            ingredientGroups={ingredientGroups}
+            ingredientName={ing?.name ?? ""}
+            onUpdate={updateRow}
+            onRemove={removeRow}
+          />
+        );
+      })}
+      <BomMobileTotal total={costBreakdown.total} />
+    </div>
+  );
+
   return (
     <div className="product-recipe-panel">
       <form onSubmit={handleSubmit} className="product-recipe-form">
@@ -161,119 +287,27 @@ export function RecipeEditor({
               {rows.length} รายการ · ต่อ {YIELD_UNIT}
             </p>
           </div>
+          {rows.length > 0 ? (
+            <CostSortLabel
+              sort={costSort}
+              onToggle={() =>
+                setCostSort((current) => (current === "desc" ? "asc" : "desc"))
+              }
+              className="cost-sort-label--compact bom-toolbar-sort md:hidden"
+            />
+          ) : null}
         </div>
 
         <div className="product-recipe-table-shell">
           <div className="bom-sheet">
-          {rows.length === 0 ? (
-            <p className="bom-empty">ยังไม่มีรายการ — กด + ด้านล่างเพื่อเพิ่ม</p>
-          ) : (
-            <table className="bom-table">
-              <thead>
-                <tr>
-                  <th>วัตถุดิบ</th>
-                  <th>ใช้/{YIELD_UNIT}</th>
-                  <th className="bom-cell-cost">
-                    {rows.length > 0 ? (
-                      <CostSortLabel
-                        sort={costSort}
-                        onToggle={() =>
-                          setCostSort((current) =>
-                            current === "desc" ? "asc" : "desc"
-                          )
-                        }
-                        className="cost-sort-label--th"
-                      />
-                    ) : (
-                      "ต้นทุน"
-                    )}
-                  </th>
-                  <th aria-label="ลบ" />
-                </tr>
-              </thead>
-              <tbody>
-                {sortedRowEntries.map(({ row, index, cost }) => {
-                  const ing = ingredients.find(
-                    (item) => item.id === row.ingredient_id
-                  );
-                  const unit = ing ? getIngredientUnitLabel(ing) : "";
-
-                  return (
-                    <tr key={`${row.ingredient_id}-${index}`}>
-                      <td className="bom-cell-ingredient">
-                        <select
-                          value={row.ingredient_id}
-                          onChange={(e) =>
-                            updateRow(index, "ingredient_id", e.target.value)
-                          }
-                          className="bom-select app-input"
-                          style={nativeSelectStyle}
-                          aria-label={ing?.name ?? "วัตถุดิบ"}
-                        >
-                          {ingredientGroups.map((optgroup) => (
-                            <optgroup
-                              key={optgroup.category}
-                              label={optgroup.label}
-                            >
-                              {optgroup.items.map((item) => (
-                                <option key={item.id} value={item.id}>
-                                  {item.name}
-                                </option>
-                              ))}
-                            </optgroup>
-                          ))}
-                        </select>
-                      </td>
-                      <td className="bom-cell-qty">
-                        <NumberInput
-                          value={row.quantity_per_roll}
-                          onChange={(e) =>
-                            updateRow(
-                              index,
-                              "quantity_per_roll",
-                              e.target.value
-                            )
-                          }
-                          className="bom-qty-input app-input-inline"
-                          aria-label={`${unit} ต่อ${YIELD_UNIT}`}
-                          allowDecimals
-                          decimals={2}
-                          plain
-                        />
-                        <span className="bom-qty-unit">{unit}</span>
-                      </td>
-                      <td className="bom-cell-cost">
-                        {cost > 0 ? formatCurrency(cost) : "—"}
-                      </td>
-                      <td className="bom-cell-action">
-                        <button
-                          type="button"
-                          onClick={() => removeRow(index)}
-                          className="bom-remove"
-                          aria-label="ลบ"
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              {costBreakdown.total > 0 && (
-                <tfoot>
-                  <tr className="bom-foot-total">
-                    <td colSpan={2} className="bom-foot-label">
-                      รวม/{YIELD_UNIT}
-                    </td>
-                    <td className="bom-cell-cost bom-foot-total-value">
-                      {formatCurrency(costBreakdown.total)}
-                    </td>
-                    <td />
-                  </tr>
-                </tfoot>
-              )}
-            </table>
-          )}
+            {rows.length === 0 ? (
+              emptyState
+            ) : (
+              <>
+                <div className="bom-table-wrap hidden md:block">{desktopTable}</div>
+                <div className="md:hidden">{mobileFeed}</div>
+              </>
+            )}
           </div>
         </div>
 

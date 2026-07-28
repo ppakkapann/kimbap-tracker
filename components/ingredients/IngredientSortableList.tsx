@@ -31,6 +31,9 @@ import { getInventoryStockStatus } from "@/lib/stock-analysis";
 import type { Ingredient } from "@/lib/types";
 import { getIngredientUnitLabel } from "@/lib/types";
 import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
+import {
+  IngredientMobileCard,
+} from "@/components/ingredients/IngredientMobileCard";
 import { YIELD_UNIT } from "@/lib/yield-unit";
 
 export interface IngredientRowData {
@@ -40,11 +43,10 @@ export interface IngredientRowData {
   costPerRoll: number;
   low: boolean;
   rollsPossible: number | null;
-  isBottleneck?: boolean;
 }
 
 function yieldTextColor(row: IngredientRowData): string | undefined {
-  if (row.isBottleneck || row.low) return "var(--danger)";
+  if (row.low) return "var(--danger)";
   if (row.rollsPossible !== null && row.rollsPossible < 10) return "var(--warning)";
   return "var(--success)";
 }
@@ -169,26 +171,6 @@ function AlertCell({ row }: { row: IngredientRowData }) {
         </span>
       </div>
     </div>
-  );
-}
-
-function MobileAlertText({ row }: { row: IngredientRowData }) {
-  const { ingredient } = row;
-  if (ingredient.low_stock_alert <= 0) return null;
-
-  const status = getInventoryStockStatus(ingredient);
-  const unit = getIngredientUnitLabel(ingredient);
-  const color =
-    status === "out"
-      ? "var(--danger)"
-      : status === "low"
-        ? "var(--warning)"
-        : "var(--text-muted)";
-
-  return (
-    <span style={{ color }}>
-      แจ้ง &lt; {formatNumber(ingredient.low_stock_alert, 0)} {unit}
-    </span>
   );
 }
 
@@ -329,19 +311,6 @@ function SortableDesktopRow({
   );
 }
 
-function MobileYieldText({ row }: { row: IngredientRowData }) {
-  if (row.rollsPossible === null || row.quantityPerRoll <= 0) return null;
-
-  return (
-    <span
-      className="text-xs tabular-nums"
-      style={{ color: yieldTextColor(row) }}
-    >
-      {formatNumber(row.rollsPossible, 0)} {YIELD_UNIT}
-    </span>
-  );
-}
-
 function StaticMobileRow({
   row,
   productId,
@@ -353,53 +322,14 @@ function StaticMobileRow({
   onEdit: (id: string) => void;
   allCategories: string[];
 }) {
-  const id = row.ingredient.id;
-  const unit = getIngredientUnitLabel(row.ingredient);
-
   return (
-    <div className="ingredient-mobile-row">
-      <button type="button" onClick={() => onEdit(id)} className="ingredient-mobile-row-main">
-        <span className="ingredient-head-grip-spacer" aria-hidden />
-        <div className="ingredient-mobile-main">
-          <div className="ingredient-mobile-title-row">
-            <LowStockDot low={row.low} />
-            <span className="ingredient-mobile-name">{row.ingredient.name}</span>
-          </div>
-          <div className="ingredient-mobile-tags-row">
-            <CategoryBadge ingredient={row.ingredient} allCategories={allCategories} />
-            <span className="ingredient-mobile-unit">{unit}</span>
-          </div>
-          <div className="ingredient-mobile-stats-row">
-            <span>
-              {row.unitCost > 0 ? formatCurrency(row.unitCost) : "—"}/หน่วย
-            </span>
-            <MobileAlertText row={row} />
-            {row.costPerRoll > 0 && (
-              <span style={{ color: "var(--success)" }}>
-                {formatCurrency(row.costPerRoll)}/{YIELD_UNIT}
-              </span>
-            )}
-            {productId && row.quantityPerRoll > 0 && (
-              <span>
-                ใช้ {formatNumber(row.quantityPerRoll, 0)} {unit}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="ingredient-mobile-side">
-          <span
-            className="text-sm font-semibold tabular-nums leading-none"
-            style={{ color: row.low ? "var(--danger)" : "var(--text-primary)" }}
-          >
-            {formatNumber(row.ingredient.current_stock, 0)}
-          </span>
-          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {unit}
-          </span>
-          <MobileYieldText row={row} />
-        </div>
-      </button>
-    </div>
+    <IngredientMobileCard
+      row={row}
+      productId={productId}
+      onEdit={onEdit}
+      allCategories={allCategories}
+      grip={<span className="ingredient-head-grip-spacer" aria-hidden />}
+    />
   );
 }
 
@@ -415,7 +345,6 @@ function SortableMobileRow({
   allCategories: string[];
 }) {
   const id = row.ingredient.id;
-  const unit = getIngredientUnitLabel(row.ingredient);
   const {
     attributes,
     listeners,
@@ -435,56 +364,15 @@ function SortableMobileRow({
     <div
       ref={setNodeRef}
       style={style}
-      className={`ingredient-mobile-row ${isDragging ? "ingredient-mobile-row--placeholder" : ""}`}
+      className={isDragging ? "ingredient-mobile-card--dragging" : undefined}
     >
-      <button
-        type="button"
-        onClick={() => onEdit(id)}
-        onKeyDown={(event) => {
-          if (event.key === "Enter" || event.key === " ") onEdit(id);
-        }}
-        className="ingredient-mobile-row-main"
-      >
-        <DragHandle listeners={listeners} attributes={attributes} />
-        <div className="ingredient-mobile-main">
-          <div className="ingredient-mobile-title-row">
-            <LowStockDot low={row.low} />
-            <span className="ingredient-mobile-name">{row.ingredient.name}</span>
-          </div>
-          <div className="ingredient-mobile-tags-row">
-            <CategoryBadge ingredient={row.ingredient} allCategories={allCategories} />
-            <span className="ingredient-mobile-unit">{unit}</span>
-          </div>
-          <div className="ingredient-mobile-stats-row">
-            <span>
-              {row.unitCost > 0 ? formatCurrency(row.unitCost) : "—"}/หน่วย
-            </span>
-            <MobileAlertText row={row} />
-            {row.costPerRoll > 0 && (
-              <span style={{ color: "var(--success)" }}>
-                {formatCurrency(row.costPerRoll)}/{YIELD_UNIT}
-              </span>
-            )}
-            {productId && row.quantityPerRoll > 0 && (
-              <span>
-                ใช้ {formatNumber(row.quantityPerRoll, 0)} {unit}
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="ingredient-mobile-side">
-          <span
-            className="text-sm font-semibold tabular-nums leading-none"
-            style={{ color: row.low ? "var(--danger)" : "var(--text-primary)" }}
-          >
-            {formatNumber(row.ingredient.current_stock, 0)}
-          </span>
-          <span className="text-[10px]" style={{ color: "var(--text-muted)" }}>
-            {unit}
-          </span>
-          <MobileYieldText row={row} />
-        </div>
-      </button>
+      <IngredientMobileCard
+        row={row}
+        productId={productId}
+        onEdit={onEdit}
+        allCategories={allCategories}
+        grip={<DragHandle listeners={listeners} attributes={attributes} />}
+      />
     </div>
   );
 }
@@ -517,27 +405,19 @@ function DragPreview({
     );
   }
 
-  const unit = getIngredientUnitLabel(row.ingredient);
   return (
-    <div className="ingredient-drag-preview ingredient-mobile-row">
-      <div className="flex min-w-0 flex-1 items-start gap-2">
-        <span className="ingredient-grip-handle ingredient-grip-handle--active">
-          <GripVertical size={16} strokeWidth={2.25} />
-        </span>
-        <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
-            <LowStockDot low={row.low} />
-            <span className="font-medium">{row.ingredient.name}</span>
-            <CategoryBadge ingredient={row.ingredient} allCategories={allCategories} />
-            <span className="text-xs" style={{ color: "var(--text-muted)" }}>
-              {unit}
-            </span>
-          </div>
-        </div>
-      </div>
-      <span className="shrink-0 text-sm font-medium tabular-nums">
-        {formatNumber(row.ingredient.current_stock, 0)}
-      </span>
+    <div className="ingredient-drag-preview ingredient-mobile-card">
+      <IngredientMobileCard
+        row={row}
+        productId={productId}
+        onEdit={() => {}}
+        allCategories={allCategories}
+        grip={
+          <span className="ingredient-grip-handle ingredient-grip-handle--active">
+            <GripVertical size={16} strokeWidth={2.25} />
+          </span>
+        }
+      />
     </div>
   );
 }
