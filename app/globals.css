@@ -4511,8 +4511,8 @@ a.app-stat-link:focus-visible {
 
 .ingredient-grid-list--bom {
   --ingredient-grid-cols:
-    minmax(7.5rem, 1.75fr) minmax(3.25rem, 0.62fr) minmax(3.25rem, 0.68fr)
-    minmax(3.75rem, 0.72fr) minmax(3.5rem, 0.68fr);
+    minmax(9rem, 1.85fr) minmax(3.75rem, 0.58fr) minmax(3.5rem, 0.64fr)
+    minmax(3.75rem, 0.68fr) minmax(5rem, 0.74fr);
 }
 
 .bom-grid-table {
@@ -4526,38 +4526,43 @@ a.app-stat-link:focus-visible {
   background: var(--bg-base);
 }
 
-.bom-grid-head {
-  flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-elevated);
-}
-
-.bom-grid-head .ingredient-grid-head--bom {
-  background: var(--bg-elevated);
-  border-bottom: none;
-}
-
-.bom-grid-head .ingredient-grid-head--bom .ingredient-grid-cell {
-  background: var(--bg-elevated);
-}
-
-.bom-grid-head .ingredient-grid-head--bom .ingredient-grid-cell--name {
-  padding-left: var(--cell-px-edge);
-}
-
-.bom-grid-head .ingredient-grid-head--bom .ingredient-grid-cell--yield {
-  padding-right: var(--cell-px-edge);
-}
-
 .bom-grid-table > .bom-grid-scroll {
   flex: 1 1 0;
   min-height: 0;
   overflow: auto;
   -webkit-overflow-scrolling: touch;
+  scrollbar-gutter: stable;
 }
 
 .bom-grid-body {
   min-width: 100%;
+}
+
+.ingredient-grid-list--bom .ingredient-grid-head--bom {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 1px 0 var(--border-subtle);
+}
+
+.ingredient-grid-list--bom .ingredient-grid-head--bom .ingredient-grid-cell {
+  background: var(--bg-elevated);
+  min-width: 0;
+  overflow: visible;
+}
+
+.ingredient-grid-list--bom .ingredient-grid-head--bom .ingredient-grid-cell--name {
+  padding-left: var(--cell-px-edge);
+  padding-right: 0.75rem;
+  white-space: nowrap;
+}
+
+.ingredient-grid-list--bom .ingredient-grid-head--bom .ingredient-grid-cell--yield {
+  padding-right: var(--cell-px-edge);
+  padding-left: 0.375rem;
+  white-space: nowrap;
 }
 
 .ingredient-grid-list--bom .ingredient-grid-row {
@@ -4573,10 +4578,23 @@ a.app-stat-link:focus-visible {
 .ingredient-grid-list--bom .ingredient-grid-cell--name {
   align-items: center;
   padding-left: var(--cell-px-edge);
+  padding-right: 0.875rem;
 }
 
 .ingredient-grid-list--bom .ingredient-grid-cell--yield {
   padding-right: var(--cell-px-edge);
+}
+
+.ingredient-grid-list--bom .ingredient-grid-cell {
+  border-left: none;
+}
+
+.ingredient-grid-list--bom .ingredient-grid-head .ingredient-grid-cell {
+  border-left: none;
+}
+
+.ingredient-grid-list--bom .ingredient-grid-head--bom .ingredient-grid-cell {
+  border-left: none;
 }
 
 .bom-grid-name-line {
@@ -4584,12 +4602,13 @@ a.app-stat-link:focus-visible {
   align-items: center;
   gap: 0.375rem;
   min-width: 0;
-  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
 }
 
 .bom-grid-name-text {
   min-width: 0;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   font-size: 0.875rem;
   font-weight: 600;
   line-height: 1.35;
@@ -4600,12 +4619,12 @@ a.app-stat-link:focus-visible {
 }
 
 .bom-grid-name-pill {
-  flex-shrink: 0;
-  max-width: 5.5rem;
+  flex: 0 0 auto;
+  max-width: 4.75rem;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  padding: 0.1875rem 0.5rem;
+  padding: 0.1875rem 0.4375rem;
   font-size: 0.625rem;
   font-weight: 700;
   line-height: 1rem;

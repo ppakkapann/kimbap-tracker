@@ -55,32 +55,30 @@ function BomGridHead({
   onCostSortToggle: () => void;
 }) {
   return (
-    <div className="bom-grid-head">
-      <div className="ingredient-grid-head ingredient-grid-head--bom">
-        <div className="ingredient-grid-cell ingredient-grid-cell--name">
-          วัตถุดิบ
-        </div>
-        <span className="ingredient-grid-cell ingredient-grid-cell--qty">
-          ใช้/{YIELD_UNIT}
-        </span>
-        <span className="ingredient-grid-cell ingredient-grid-cell--stock">
-          สต็อก
-        </span>
-        <span className="ingredient-grid-cell ingredient-grid-cell--cost">
-          {entriesCount > 0 ? (
-            <CostSortLabel
-              sort={costSort}
-              onToggle={onCostSortToggle}
-              className="cost-sort-label--th"
-            />
-          ) : (
-            "ต้นทุน"
-          )}
-        </span>
-        <span className="ingredient-grid-cell ingredient-grid-cell--yield">
-          ทำได้อีก
-        </span>
+    <div className="ingredient-grid-head ingredient-grid-head--bom">
+      <div className="ingredient-grid-cell ingredient-grid-cell--name">
+        วัตถุดิบ
       </div>
+      <span className="ingredient-grid-cell ingredient-grid-cell--qty">
+        ใช้/{YIELD_UNIT}
+      </span>
+      <span className="ingredient-grid-cell ingredient-grid-cell--stock">
+        สต็อก
+      </span>
+      <span className="ingredient-grid-cell ingredient-grid-cell--cost">
+        {entriesCount > 0 ? (
+          <CostSortLabel
+            sort={costSort}
+            onToggle={onCostSortToggle}
+            className="cost-sort-label--th"
+          />
+        ) : (
+          "ต้นทุน"
+        )}
+      </span>
+      <span className="ingredient-grid-cell ingredient-grid-cell--yield">
+        ทำได้อีก
+      </span>
     </div>
   );
 }
@@ -111,14 +109,13 @@ export function BomDesktopGrid({
 }) {
   return (
     <div className="bom-grid-table ingredient-grid-list--bom">
-      <BomGridHead
-        entriesCount={entries.length}
-        costSort={costSort}
-        onCostSortToggle={onCostSortToggle}
-      />
-
       <div className="bom-grid-scroll">
         <div className="ingredient-grid-list ingredient-grid-list--bom bom-grid-body">
+          <BomGridHead
+            entriesCount={entries.length}
+            costSort={costSort}
+            onCostSortToggle={onCostSortToggle}
+          />
       {entries.map(({ row, index, cost, rollsPossible }) => {
         const ing = ingredients.find((item) => item.id === row.ingredient_id);
         const unit = ing ? getIngredientUnitLabel(ing) : "";
