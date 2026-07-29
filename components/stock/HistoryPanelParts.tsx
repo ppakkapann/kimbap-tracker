@@ -4,6 +4,30 @@ import type { ReactNode } from "react";
 import { format } from "date-fns";
 import { th } from "date-fns/locale";
 
+export function HistoryPanelHeader({
+  title,
+  subtitle,
+  actions,
+}: {
+  title: string;
+  subtitle?: string;
+  actions?: ReactNode;
+}) {
+  return (
+    <header className="history-panel-header">
+      <div className="history-panel-header-main">
+        <h2 className="app-section-title mb-1">{title}</h2>
+        {subtitle ? (
+          <p className="history-panel-subtitle">{subtitle}</p>
+        ) : null}
+      </div>
+      {actions ? (
+        <div className="history-panel-header-actions">{actions}</div>
+      ) : null}
+    </header>
+  );
+}
+
 export function HistoryMonthHeader({
   monthKey,
   meta,

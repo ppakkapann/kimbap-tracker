@@ -102,10 +102,6 @@ export function StockPageClient({
       {tab === "history" && (
         <div className="history-grid stock-history-grid">
           <div className="app-card history-panel-card">
-            <h2 className="app-section-title mb-1">ประวัติการเคลื่อนไหว</h2>
-            <p className="history-panel-subtitle">
-              ซื้อ · ขาย · ตัดออก · ตรวจนับ — จัดตามเดือน
-            </p>
             <StockMovementHistory
               movements={movements}
               purchases={purchases}
@@ -113,10 +109,6 @@ export function StockPageClient({
             />
           </div>
           <div className="app-card history-panel-card">
-            <h2 className="app-section-title mb-1">ประวัติการซื้อ</h2>
-            <p className="history-panel-subtitle">
-              เฉพาะ + เติมสต็อก — จิ้มรายการเพื่อแก้ไข
-            </p>
             <PurchaseHistoryTable
               purchases={actualPurchases}
               ingredients={ingredients}

@@ -19,6 +19,7 @@ import { StockQuantityDisplay } from "@/components/stock/StockQuantityDisplay";
 import { PurchaseEditModal } from "@/components/stock/PurchaseEditModal";
 import { HistoryDateRangePicker } from "@/components/stock/HistoryDateRangePicker";
 import {
+  HistoryPanelHeader,
   HistoryTableMonthRow,
   HistoryTableShell,
 } from "@/components/stock/HistoryPanelParts";
@@ -184,35 +185,40 @@ export function StockMovementHistory({
   );
 
   return (
-    <div className="history-panel-body">
-      <div className="history-panel-controls-slot history-panel-controls-slot--movement">
-        <div className="history-type-filters">
-          {typeFilters.map((item) => (
-            <button
-              key={item.id}
-              type="button"
-              onClick={() => setTypeFilter(item.id)}
-              className={`stock-history-filter ${
-                typeFilter === item.id ? "stock-history-filter--active" : ""
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <HistoryTableShell
-        variant="movement"
-        columns={movementColumns}
-        periodToggle={
+    <>
+      <HistoryPanelHeader
+        title="ประวัติการเคลื่อนไหว"
+        subtitle="ซื้อ · ขาย · ตัดออก · ตรวจนับ — จัดตามเดือน"
+        actions={
           <HistoryDateRangePicker
             value={dateRange}
             onChange={setDateRange}
             today={today}
           />
         }
-        footer={
+      />
+      <div className="history-panel-body">
+        <div className="history-panel-controls-slot history-panel-controls-slot--movement">
+          <div className="history-type-filters">
+            {typeFilters.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setTypeFilter(item.id)}
+                className={`stock-history-filter ${
+                  typeFilter === item.id ? "stock-history-filter--active" : ""
+                }`}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <HistoryTableShell
+          variant="movement"
+          columns={movementColumns}
+          footer={
           filtered.length > 0 ? (
             <div className="history-table-footer">
               <p className="app-table-footer-label">
@@ -326,8 +332,9 @@ export function StockMovementHistory({
             })}
           </div>
         )}
-      </HistoryTableShell>
-    </div>
+        </HistoryTableShell>
+      </div>
+    </>
   );
 }
 
@@ -416,27 +423,52 @@ export function PurchaseHistoryTable({
 
   if (purchases.length === 0) {
     return (
-      <div className="history-panel-body">
-        <div className="history-panel-empty history-panel-empty--fill">
-          <ShoppingBag size={28} strokeWidth={1.5} aria-hidden />
-          <p>ยังไม่มีประวัติการซื้อ</p>
-          <span>บันทึกจาก + เติมสต็อก</span>
+      <>
+        <HistoryPanelHeader
+          title="ประวัติการซื้อ"
+          subtitle="เฉพาะ + เติมสต็อก — จิ้มรายการเพื่อแก้ไข"
+          actions={
+            <HistoryDateRangePicker
+              value={dateRange}
+              onChange={setDateRange}
+              today={today}
+            />
+          }
+        />
+        <div className="history-panel-body">
+          <div className="history-panel-empty history-panel-empty--fill">
+            <ShoppingBag size={28} strokeWidth={1.5} aria-hidden />
+            <p>ยังไม่มีประวัติการซื้อ</p>
+            <span>บันทึกจาก + เติมสต็อก</span>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="history-panel-body">
-      {editingPurchase && ingredientMap.get(editingPurchase.ingredient_id) && (
-        <PurchaseEditModal
-          purchase={editingPurchase}
-          ingredient={ingredientMap.get(editingPurchase.ingredient_id)!}
-          onClose={() => setEditingPurchase(null)}
-        />
-      )}
+    <>
+      <HistoryPanelHeader
+        title="ประวัติการซื้อ"
+        subtitle="เฉพาะ + เติมสต็อก — จิ้มรายการเพื่อแก้ไข"
+        actions={
+          <HistoryDateRangePicker
+            value={dateRange}
+            onChange={setDateRange}
+            today={today}
+          />
+        }
+      />
+      <div className="history-panel-body">
+        {editingPurchase && ingredientMap.get(editingPurchase.ingredient_id) && (
+          <PurchaseEditModal
+            purchase={editingPurchase}
+            ingredient={ingredientMap.get(editingPurchase.ingredient_id)!}
+            onClose={() => setEditingPurchase(null)}
+          />
+        )}
 
-      <div className="history-panel-controls-slot history-panel-controls-slot--purchase">
+        <div className="history-panel-controls-slot history-panel-controls-slot--purchase">
         <div className="purchase-history-summary">
           <div className="purchase-history-stat">
             <span className="purchase-history-stat-label">ช่วงที่เลือก</span>
@@ -480,13 +512,6 @@ export function PurchaseHistoryTable({
       <HistoryTableShell
         variant="purchase"
         columns={purchaseColumns}
-        periodToggle={
-          <HistoryDateRangePicker
-            value={dateRange}
-            onChange={setDateRange}
-            today={today}
-          />
-        }
         footer={
           periodPurchases.length > 0 ? (
             <div className="history-table-footer">
@@ -691,6 +716,7 @@ export function PurchaseHistoryTable({
           </div>
         )}
       </HistoryTableShell>
-    </div>
+      </div>
+    </>
   );
 }

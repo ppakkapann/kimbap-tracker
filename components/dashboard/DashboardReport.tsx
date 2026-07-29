@@ -12,7 +12,7 @@ import {
   ShoppingBag,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/calculations";
-import { ExportReportButton } from "@/components/reports/ExportReportButton";
+import { ExportHubLink } from "@/components/export/ExportHubPanel";
 
 export type DashboardReportDay = {
   date: string;
@@ -118,10 +118,12 @@ export function DashboardReport({
   today,
   report,
   productSales,
+  exportHref = "/reports?tab=export",
 }: {
   today: string;
   report: DashboardReportDay[];
   productSales: DashboardProductSale[];
+  exportHref?: string;
 }) {
   const [period, setPeriod] = useState<Period>("month");
   const periodDays = PERIODS.find((item) => item.value === period)?.days ?? 30;
@@ -239,11 +241,7 @@ export function DashboardReport({
               </button>
             ))}
           </div>
-          <ExportReportButton
-            rows={currentDays}
-            previousRows={previousDays}
-            periodLabel={period === "week" ? "7 วันล่าสุด" : "30 วันล่าสุด"}
-          />
+          <ExportHubLink href={exportHref} label="ส่งออก" />
         </div>
       </div>
 

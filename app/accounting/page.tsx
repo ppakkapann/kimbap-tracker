@@ -5,12 +5,9 @@ import { AccountingExpenseForm } from "@/components/accounting/AccountingExpense
 import { AccountingExpenseHistoryPanel } from "@/components/accounting/AccountingExpenseHistoryPanel";
 import { AccountingMonthPicker } from "@/components/accounting/AccountingMonthPicker";
 import { AccountingSummary } from "@/components/accounting/AccountingSummary";
-import { ExportAccountingButton } from "@/components/accounting/ExportAccountingButton";
+import { ExportHubLink } from "@/components/export/ExportHubPanel";
 import { PageHeader } from "@/components/ui";
-import {
-  buildAccountingExportPayload,
-  formatAccountingMonthLabel,
-} from "@/lib/accounting-export";
+import { formatAccountingMonthLabel } from "@/lib/accounting-export";
 import { formatCurrency } from "@/lib/calculations";
 import { mergeExpenseCategorySuggestions } from "@/lib/operating-expenses";
 import { fetchAccountingPage } from "@/lib/queries";
@@ -37,11 +34,6 @@ export default async function AccountingPage({
     allOperatingExpenses.map((expense) => expense.category)
   );
 
-  const exportData = buildAccountingExportPayload(
-    month,
-    summary,
-    operatingExpenses
-  );
   const defaultExpenseDate =
     month === currentMonth ? today : `${month}-01`;
   const expenseByCategory = [
@@ -98,7 +90,10 @@ export default async function AccountingPage({
         subtitle={monthLabel}
         action={
           <div className="flex flex-wrap items-center gap-2">
-            <ExportAccountingButton data={exportData} />
+            <ExportHubLink
+              href={`/reports?tab=export&month=${month}`}
+              label="ส่งออก"
+            />
             <AccountingMonthPicker selectedMonth={month} />
           </div>
         }
